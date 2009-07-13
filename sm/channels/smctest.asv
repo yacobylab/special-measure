@@ -1,0 +1,10 @@
+function val = smctest(ic, val)
+
+global smdata;
+
+if nargin >=2 
+    smdata.inst(ic(1)).data.val(ic(:, 2)) = val;
+else
+    val = smdata.inst(ic(1)).data.val(ic(:, 2));
+    fprinft(%f
+end

@@ -1,0 +1,61 @@
+function scan = smarampYokoTDS(scan, tds, yokos)
+
+global smdata;
+
+
+if nargin >=2 
+    tds = scan.loops(end-1).getchan(tds, :);
+else
+    tds = scan.loops(end-1).getchan;
+end
+
+if nargin >=3
+    yokos = scan.loops(end).setchan(yokos);
+else
+    yokos = scan.loops(end).setchan;
+end
+
+yokos = smchanlookup(yokos);
+tds = smchanlookup(tds);
+
+lockins = sminstlookup('SR830'); % assumes there is only one
+yokos = smchaninst(scan.loops(end).setchan); % assumes no other ramped device
+
+
+inst = smdata.channels(tds).instchan(1);
+
+
+sampler = 1/abs(scan.loops(end).ramptime);
+
+% encode as int
+fprintf(smdata.inst(inst).data.inst, 'DAT:ENC SRIB');
+fprintf(smdata.inst(inst).data.inst, 'HOR:MAI:SAMPLER %f', sampler);
+if query(smdata.inst(inst).data.inst, 'HOR:MAI:SAMPLER?', '%s\n', '%f') < sampler;
+    fprintf(smdata.inst(inst).data.inst, 'HOR:MAI:SAMPLER %f', 2* sampler);
+end
+
+sampler = query(smdata.inst(inst).data.inst, 'HOR:MAI:SAMPLER?', '%s\n', '%f');
+scan.loops(end).ramptime = -1/sampler;
+
+fprintf(smdata.inst(inst).data.inst, 'HOR:RECO %d', scan.loops(end).npoints);
+if query(smdata.inst(inst).data.inst, 'HOR:RECO?', '%s\n', '%d') < scan.loops(end).npoints;
+    fprintf(smdata.inst(inst).data.inst, 'HOR:RECO %d', 2*scan.loops(end).npoints);
+end
+
+scan.loops(end).npoints = query(smdata.inst(inst).data.inst, 'HOR:RECO?', '%s\n', '%d');
+fprintf(smdata.inst(inst).data.inst, 'DAT:STOP %d', scan.loops(end).npoints)
+fprintf(smdata.inst(inst).data.inst, 'DAT:START 1');
+
+smdata.inst(inst).datadim(1:4, 1) = scan.loops(end).npoints;
+
+tds = smdata.channels(tds).instchan(1);
+yokos = vertcat(smdata.channels(yokos).instchan);
+
+scan.loops(end).trigfn.fn = @smatrigYokoTDS;
+scan.loops(end).trigfn.args = {tds, yokos(:, 1)};
+
+
+%fprintf(TDS,'DAT:STAR 1')
+%fprintf(TDS,'DAT:STOP %d', datadim)
+
+    

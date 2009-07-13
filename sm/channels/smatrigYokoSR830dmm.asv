@@ -1,0 +1,35 @@
+function smatrigYokoSR830dmm(yokos, lockins, dmms, notriglock)
+% smatrigYokoSR830dmm(yokos, lockins, dmms, triglock)
+% trigger routines for lockins, yokos and dmms.
+% Lockin acquisition is only initiated but not triggered 
+% if notriglock given and nonzero
+% or triglock given and nonzero.
+% so that the DMM OUT can be used as a trigger signal.
+
+global smdata;
+
+if nargin < 3
+    dmms = [];
+end
+
+for i = lockins
+    fprintf(smdata.inst(i).data.inst, 'REST;STRT');
+end
+
+for i = dmms
+    fprintf(smdata.inst(i).data.inst, 'INIT');
+end
+
+pause(.3); 
+% seems like the INIT command takes about .25 s.
+
+if nargin < 3 || (nargin >= 4 && triglock)
+    dmms = [dmms, lockins];
+end
+
+for i = yokos
+    fprintf(smdata.inst(i).data.inst, 'RU2');
+end
+for i = dmms
+    trigger(smdata.inst(i).data.inst);
+end

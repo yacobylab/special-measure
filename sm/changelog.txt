@@ -1,0 +1,39 @@
+02/16/08 Hendrik
+Added cleanupfn call to smrun.
+Reinstated log entries. Moved required functions (log*.m) 
+from qDots/matlab to MATLAB/sm.
+
+04/01/09 Hendrik
+Syncronized channels directory with qDots/sm/channels
+ - updated smadacinit.m  (previous version in smadacinitOld.m)
+ - updated smcDecaDAC4.m, better error handling 
+   (previous version in smcDecaDAC4old.m)
+ - updated smcfeedback.m
+ - deleted some .asv and .m~ files.
+
+04/16/09 Hendrik
+ - debuged trigger function of smcDecaDAC4.m
+ - added trigger function to smcTDS5104.m
+ - wrote smatrigfn.m as generic trigger function
+ - updated smarampconfig.m to use generic trigger method by default
+
+05/23/09 Hendrik
+ - changed smcIPS12010GPIB.m to return peristent field if switch heater is off.
+ - added 'SETP' channel to smcIPS12010GPIB.m  (may not be so useful and 
+   subject to further change)
+ - see qDots/matalb/ipscntrl.m for an auxiliary tool to change into and out of
+   persistent mode.
+
+06/09/09 Hendrik
+ - changed x def for "loopless" data dimensions to a vector in smrun so that
+   line plots get displayed properly.
+
+06/29/09 Hendrik
+ - added marker levels as channels to AWG520.
+
+06/30/09 Hendrik
+ - Added option to save only every nth iteration of saveloop.
+
+07/13/09 Vivek
+ - Moved the handling of 'setchanranges' field to after copying scan.loops into
+   scandef.

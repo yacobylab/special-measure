@@ -1,0 +1,8 @@
+function dummy = smaresetSR830(dummy, inst)
+% smaresetSR830dmm(dummy, inst)
+
+global smdata;
+
+fprintf(smdata.inst(inst).data.inst, 'REST');
+smdata.inst(inst).data.currsamp = 0;
+pause(.01); %needed to give instrument rime 

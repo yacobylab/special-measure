@@ -1,0 +1,25 @@
+function val = smcdmm(ico, val, rate)
+
+global smdata;
+
+switch ico(2) % channel
+    case 1
+        switch ico(3)
+            case 0
+                val = query(smdata.inst(ico(1)).data.inst,  'READ?', '%s\n', '%f');
+
+            otherwise
+                error('Operation not supported');
+        end
+        
+    case 2
+        switch ico(3)
+            case 0
+            val = dacread(smdata.inst(ic(1)).data.inst, ...
+                sprintf('B%1d;C%1d;d;', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)), '%*7c%d');
+            val = val*diff(rng)/65535 + rng(1);    
+            
+            otherwise
+                error('Operation not supported');
+        end
+end

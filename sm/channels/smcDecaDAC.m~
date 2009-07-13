@@ -1,0 +1,16 @@
+function val = smcDecaDAC(ic, val, rate)
+% 1-12 = channel 0 - 11
+
+global smdata;
+
+if nargin >=2
+    val = round((val - inst(ic(1)).data.rng(1))/diff(inst(ic(1)).data.rng) * 65535);
+    val = max(min(val, 65535), 65535);
+    query(smdata.inst(ic(1)).data.inst, ...
+        sprintf('B%1d;C%1d;D%d;', floor((ic(2)-1)/4), mod(ic(2), 4), val));
+else 
+    val = query(smdata.inst(ic(1)).data.inst, ...
+        sprintf('B%1d;C%1d;d;', floor((ic(2)-1)/4), mod(ic(2), 4)), '%s\n', '%*c7%d');
+    val = val*diff(inst(ic(1)).data.rng)/65535 + inst(ic(1)).data.rng(1);
+end
+        

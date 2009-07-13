@@ -1,0 +1,12 @@
+function smatrigDACTDS(daqs, tds)
+% trigger 
+global smdata;
+
+for i = daqs
+    smquery(i,            ...
+    sprintf('B%1d;C%1d;G0', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)));
+
+end
+
+
+%fprintf(smdata.inst(tds).data.inst, 'TRIG FORCE');

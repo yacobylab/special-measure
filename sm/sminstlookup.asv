@@ -1,0 +1,17 @@
+function inst = sminstlookup(dev)
+% inst = sminstlookup(dev)
+% Convert instrument name to index. d
+
+if ~isnumeric(dev)
+    inst = strmatch(dev, strvcat(smdata.inst.name));
+    if isempty(inst)
+        inst = strmatch(dev, strvcat(smdata.inst.device));
+    end
+else
+    inst = dev;
+end
+
+if isempty(inst)
+    fprintf('Invalid instrument\n');
+    return;
+end

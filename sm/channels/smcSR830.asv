@@ -1,0 +1,46 @@
+function val = smcSR830(ic, val, rate)
+% 1: X, 2: Y, 3: R, 4: Theta, 5: freq, 6: ref amplitude
+% 7:10: AUX input 1-4, 11:14: Aux output 1:4
+% 15,16: stored data, length determined by datadim
+
+global smdata;
+
+cmds = {'OUTP 1', 'OUTP 2', 'OUTP 3', 'OUTP 4', 'FREQ', 'SLVL', ...
+    'OAUX 1', 'OAUX 2', 'OAUX 3', 'OAUX 4', 'AUXV 1', 'AUXV 2', 'AUXV 3', 'AUXV 4'};
+
+switch ic(2)
+    case {15, 16}
+        switch ic(3)
+            case 0                
+                npts = smdata.inst(ic(1)).datadim(ic(2), 1);
+                while 1
+                    navail = query(smdata.inst(ic(1)).data.inst, 'SPTS?', '%s\n', '%d');
+                    if navail >= npts
+                        break;
+                    else
+                        pause(0.8 * (npts-navail) * smdata.inst(ic(1)).data.sampint);
+                    end
+                end
+                
+                fprintf(smdata.inst(ic(1)).data.inst, sprintf('TRCB? %d %d %d', ...
+                    ic(2)-14, 0, npts);
+
+                val = fread(smdata.inst(ic(1)).data.inst, npts, 'single');
+                % smdata.inst(ic(1)).data.count, 1
+                fprintf(smdata.inst(ic(1)).data.inst, 'REST');
+                
+            otherwise
+                error('Operation not supported');
+        
+    otherwise
+        switch ic(3)
+            case 1
+                fprintf(smdata.inst(ic(1)).data.inst, sprintf('%s %f', cmds{ic(2)}, val));
+            case 0
+                val = query(smdata.inst(ic(1)).data.inst, sprintf('%s? %s',...
+                    cmds{ic(2)}(1:4), cmds{ic(2)}(5:6)), '%s\n', '%f');
+            otherwise
+                error('Operation not supported');
+        end
+end
+        

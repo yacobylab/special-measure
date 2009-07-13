@@ -1,0 +1,16 @@
+function smastopYokos(yokos)
+% smastopYokos(yokos)
+% stop ramps on yokos with indices given (default all)
+global smdata;
+
+if nargin < 1
+    yokos = strmatch('Yoko7651', strvcat(smdata.inst.device));
+end
+
+for i = yokos'
+    if strcmp(smdata.inst(i).device, 'Yoko7651')
+        if bitanquery(smdata.inst(i).data.inst, 'OC', '%s', 'STS1=%d');
+        fprintf(smdata.inst(i).data.inst, 'RU0');
+    end
+end
+

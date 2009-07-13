@@ -1,0 +1,18 @@
+function val = smcATS660(ico, val, rate)
+
+global smdata;
+switch ico(3)    
+    case 0
+        nsamp = smdata.inst(ico(1)).datadim(ico(2), 1);
+        buf = uint16(zeros(1, nsamp+16));
+ico        [board, buf] = daqfn('Read',  smdata.inst(ico(1)).data.handle, ico(2), buf, 1, 0, 8000000);
+        %[boardh, buf] = daqfn('Read', boardh, 1, buf, 2, 1, 0, 8000000);
+
+        val = smdata.inst(ico(1)).data.rng * (buf./2^15)-.5;
+
+    case 3
+        daqfn('ForceTrigger', smdata.inst(ico(1)).data.handle);
+
+    otherwise
+        error('Operation not supported.');
+end
