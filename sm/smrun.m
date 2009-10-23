@@ -51,11 +51,11 @@ end
 % Adding a loop to set global constants for the scan, held in field
 % scan.consts
 if isfield(scan,'consts')
-    for i=1:length(smscan.consts)
-        prolog_setchans{i}=smscan.consts(i).setchan;
-        prolog_vals(i)=smscan.consts(i).val;
+    for i=1:length(scan.consts)
+        prolog_setchans{i}=scan.consts(i).setchan;
+        prolog_vals(i)=scan.consts(i).val;
     end
-    if ~isempty(smscan.consts)
+    if ~isempty(scan.consts)
         smset(prolog_setchans, prolog_vals);
     end
 end
