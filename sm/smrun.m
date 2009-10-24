@@ -36,7 +36,7 @@ function data = smrun(scan, filename)
 %   datafn
 %   procfn: struct array with fields fn and dim, one element for each
 %           getchannel. dim replaces datadim, fn is a struct array with
-%           fields fn and args.
+%           fields fn and args. Optional fields: inchan, outchan, indata, outdata.
 %   trigfn: executed only after programming ramps for autochannels.
 
 global smdata;
@@ -48,19 +48,10 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
-% Adding a loop to set global constants for the scan, held in field
-% scan.consts
-if isfield(scan,'consts')
-    for i=1:length(scan.consts)
-        prolog_setchans{i}=scan.consts(i).setchan;
-        prolog_vals(i)=scan.consts(i).val;
-    end
-    if ~isempty(scan.consts)
-        smset(prolog_setchans, prolog_vals);
-    end
+% set global constants for the scan, held in field scan.consts
+if isfield(scan,'consts') && ~isempty(scan.consts)
+    smset({scan.consts.setchan}, [scan.consts.val]);
 end
-
-
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
@@ -107,6 +98,10 @@ if ~isfield(scandef, 'trafofn')
     [scandef.trafofn] = deal({});
 end
 
+if ~isfield(scandef, 'procfn')
+    [scandef.procfn] = deal([]);
+end
+
 if ~isfield(scandef, 'ramptime')
      [scandef.ramptime] = deal([]);
 end
@@ -121,7 +116,6 @@ if ~isfield(scan, 'trafofn')
     scan.trafofn = {};
 end
 
-
 %if nargin < 2
 %    filename = 'data';
 %end
@@ -131,11 +125,12 @@ if nargin >= 2 && filename(2)~=':'
         filename = 'data';
     end
     
-
-    filename = sprintf('sm_%s.mat', filename);
-
+    if all(filename ~= '/')
+        filename = sprintf('sm_%s.mat', filename);
+    end
+    
     str = '';
-    while exist(filename, 'file') && ~strcmp(str, 'yes')
+    while (exist(filename, 'file') || exist([filename, '.mat'], 'file')) && ~strcmp(str, 'yes')
         fprintf('File %s exists. Overwrite? (yes/no)', filename);
         while 1
             str = input('', 's');
@@ -151,7 +146,6 @@ if nargin >= 2 && filename(2)~=':'
 end
 
 
-    
 for i = 1:nloops
     if isempty(scandef(i).npoints)        
         scandef(i).npoints = length(scandef(i).rng);
@@ -167,8 +161,45 @@ for i = 1:nloops
     scandef(i).setchan = smchanlookup(scandef(i).setchan);
     scandef(i).getchan = smchanlookup(scandef(i).getchan);
     nsetchan(i) = length(scandef(i).setchan);
-    ngetchan(i) = length(scandef(i).getchan);
 
+    %procfn defaults
+    if ~isempty(scandef(i).getchan) && isempty(scandef(i).procfn) % no processing at all, each channel saved
+        [scandef(i).procfn(1:length(scandef(i).getchan)).fn] = deal([]);
+    end
+    
+    % number of channels saved.
+    ngetchan(i) = 0;%length(scandef(i).procfn); 
+    
+    for j = 1:length(scandef(i).procfn)
+        % set ngetchan to largest outdata index or procfn index where outdata not given
+        if isfield(scandef(i).procfn(j).fn, 'outdata')
+            ngetchan(i) = max([ngetchan(i), scandef(i).procfn(j).fn.outdata]);
+            
+            % index lookup from data index to function index
+            nod = length([scandef(i).procfn(j).fn.outdata]);
+            ind = sum(ngetchan(1:i-1)); % data channel index
+
+            odind(:, [scandef(i).procfn(j).fn.outdata]+ind) = [j * ones(1, nod); 1:nod];
+        else
+            odind(:, sum(ngetchan(1:i-1))+j) = [j ; 1];
+            ngetchan(i) = max(ngetchan(i), j);
+        end
+        
+        if isfield(scandef(i).procfn(j).fn, 'outdata') && ~isfield(scandef(i).procfn(j).fn, 'indata')
+            [scandef(i).procfn(j).fn.indata] = deal(scandef(i).procfn(j).fn.outdata);
+        end
+            
+        if ~isfield(scandef(i).procfn(j).fn, 'inchan')
+            for k = 1:length(scandef(i).procfn(j).fn)
+                scandef(i).procfn(j).fn(k).inchan = j;
+            end
+        end
+       
+        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan')
+            [scandef(i).procfn(j).fn.outchan] = deal(scandef(i).procfn(j).fn.inchan);
+        end
+    end
+        
     if isempty(scandef(i).ramptime)
         scandef(i).ramptime = nan(nsetchan(i), 1);
     elseif length(scandef(i).ramptime) == 1 
@@ -192,7 +223,7 @@ npoints = [scandef.npoints];
 totpoints = prod(npoints);
 
 datadim = zeros(sum(ngetchan), 5); % size of data read each time
-newdata = cell(1, max(ngetchan));
+%newdata = cell(1, max(ngetchan));
 data = cell(1, sum(ngetchan));
 ndim = zeros(1, sum(ngetchan)); % dimension of data read each time
 dataloop = zeros(1, sum(ngetchan)); % loop in which each channel is read
@@ -205,19 +236,29 @@ for i = 1:nloops
     instchan = vertcat(smdata.channels(scandef(i).getchan).instchan);            
     for j = 1:ngetchan(i)
         ind = sum(ngetchan(1:i-1))+ j; % data channel index
-        if isfield(scandef, 'procfn') && length(scandef(i).procfn) >= j && ~isempty(scandef(i).procfn(j).fn)
-            dd = scandef(i).procfn(j).dim; % get dimension of proscessed data if procfn defined
+        if  ~isempty(scandef(i).procfn(odind(1, ind)).fn)
+            %get dimension of proscessed data if procfn used
+            dd = scandef(i).procfn(odind(1, ind)).dim(odind(2, ind), :);                                     
         else
             dd = smdata.inst(instchan(j, 1)).datadim(instchan(j, 2), :);
         end
         
-        ndim(ind) = sum(dd > 1);
-        %ndim(ind) = find(dd > 1, 1, 'last');
+        %ndim(ind) = sum(dd > 1); % used unitl 08/03/09. See software.txt        
+        if all(dd <= 1)
+            ndim(ind) = 0;
+        else
+            ndim(ind) = find(dd > 1, 1, 'last');
+        end
         % # of non-singleton dimensions
-        datadim(ind, 1:ndim(ind)) = dd(1:ndim(ind));          
-        dim = [npoints(end:-1:i), datadim(ind, 1:ndim(ind))];
+        datadim(ind, 1:ndim(ind)) = dd(1:ndim(ind));
+        if isfield(scandef(i).procfn(odind(1, ind)).fn, 'outdata')
+            dim = datadim(ind, 1:ndim(ind));
+            % no not expand dimension if outdata given.
+        else
+            dim = [npoints(end:-1:i), datadim(ind, 1:ndim(ind))];
+        end
         if length(dim) == 1
-            dim(end+1) = 1;
+            dim(2) = 1;
         end
         data{ind} = nan(dim);
         dataloop(ind) = i;
@@ -299,7 +340,9 @@ for i = 1:length(disp)
         
         set(gca, 'ydir', 'normal');
         colorbar;
-        title(smdata.channels(getch(dc)).name);
+        if dc <= length(getch)
+            title(smdata.channels(getch(dc)).name);
+        end
         xlabel(xlab);
         ylabel(ylab);
     else
@@ -309,7 +352,9 @@ for i = 1:length(disp)
         %permute(subsref(data{dc}, s), [ndim(dc), 1:ndim(dc)-1])
         xlim(sort(x([1, end])));
         xlabel(xlab);
-        ylabel(smdata.channels(getch(dc)).name);
+        if dc <= length(getch)
+            ylabel(smdata.channels(getch(dc)).name);
+        end
     end
 end  
 
@@ -436,21 +481,30 @@ for i = 1:totpoints
     end
     for j = loops
         % could save a function call/data copy here - not a lot of code               
-        newdata(1:ngetchan(j)) = smget(scandef(j).getchan);
-       %transfer to data arrays
-        ind = sum(ngetchan(1:j-1));
-        for k = 1:ngetchan(j)
-            s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
-            if isfield(scandef, 'procfn') && length(scandef(j).procfn) >= k
-                for fn = scandef(j).procfn(k).fn
-                    newdata{k} = fn.fn(newdata{k}, fn.args{:});
-                end
-            end
-            data{ind + k} = subsasgn(data{ind + k}, s, newdata{k}); 
-        end
+        newdata = smget(scandef(j).getchan);
         
-        % process data, 
-     
+        ind = sum(ngetchan(1:j-1));
+        for k = 1:length(scandef(j).procfn) 
+            
+            if isfield(scandef(j).procfn(k).fn, 'outdata')
+                for fn = scandef(j).procfn(k).fn
+                    [newdata{fn.outchan}, data{ind + fn.outdata}] = fn.fn(newdata{fn.inchan}, data{ind + fn.indata}, fn.args{:});
+                end
+            else
+                for fn = scandef(j).procfn(k).fn
+                    [newdata{fn.outchan}] = fn.fn(newdata{fn.inchan}, fn.args{:});
+                end
+                s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
+                if isempty(fn)
+                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{k}); 
+                else
+                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{fn.outchan});
+                end
+                % added if and else case 08/04/09. See software.txt
+            end
+               
+        end    
+        
         % display data. 
         for k = find([disp.loop] == j)
             dc = disp(k).channel;
