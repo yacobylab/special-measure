@@ -1,5 +1,5 @@
 function data = smrun(scan, filename)
-% data = smrun(scan, filename)
+% data = smrun(scan, filename) [d]
 % data = smrun(filename) will assume scan = smscan
 %
 % scan: struct with the following fields:
@@ -36,11 +36,7 @@ function data = smrun(scan, filename)
 %   datafn
 %   procfn: struct array with fields fn and dim, one element for each
 %           getchannel. dim replaces datadim, fn is a struct array with
-%           fields fn and args. Optional fields: inchan, outchan, indata, outdata.
-%           inchan, outchan refer to temporary storage space
-%           indata, outdata refer to data space.
-%           indata defaults to outdata if latter is given.
-%           inchan, outdata default to index of procfn, i.e. the nth function uses the nth channel of its loop.
+%           fields fn and args.
 %   trigfn: executed only after programming ramps for autochannels.
 
 global smdata;
@@ -52,10 +48,19 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
+% Adding a loop to set global constants for the scan, held in field
+% scan.consts
+if isfield(scan,'consts')
+    for i=1:length(smscan.consts)
+        prolog_setchans{i}=smscan.consts(i).setchan;
+        prolog_vals(i)=smscan.consts(i).val;
+    end
+    if ~isempty(smscan.consts)
+        smset(prolog_setchans, prolog_vals);
+    end
 end
+
+
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
@@ -65,11 +70,7 @@ end
 
 scandef = scan.loops;
 
-if ~isfield(scan, 'disp') || isempty(scan.disp)
-    disp = struct('loop', {}, 'channel', {}, 'dim', {});
-else
-    disp = scan.disp;
-end
+disp = scan.disp;
 
 nloops = length(scandef);
 nsetchan = zeros(1, nloops);
@@ -78,16 +79,20 @@ ngetchan = zeros(1, nloops);
 % If the scan sent to smrun has fields scan.loops(i).setchanranges, the
 % trafofn and rng fields have to be adjusted to convention
 % If there is more than one channel being ramped, the range for the loop
-% will be setchanranges{1}, and the channel values will be determined by linear
-% mapping of this range onto the desired range for each channel.
+% will be [0 1], and the channel values will be determined by linear
+% mapping of [0 1] onto the range for that channel.  Otherwise, the loop
+% variable will be the range for that scan.
 for i=1:length(scandef)
     if isfield(scandef(i),'setchanranges')
-        scandef(i).rng=scandef(i).setchanranges{1};
-        for j=1:length(scandef(i).setchanranges)
-            setchanranges = scandef(i).setchanranges{j};
-            scandef(i).trafofn{j}=@(x, y) ...
-                (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)...
-                +(scandef(i).rng(2)-x(i))/range(scandef(i).rng)*setchanranges(1);
+        if length(scandef(i).setchan)==1
+            scandef(i).rng = scandef(i).setchanranges{1};
+            scandef(i).trafofn = {};
+        else
+            scandef(i).rng=[0 1];
+            for j=1:length(scandef(i).setchanranges)
+                setchanranges = scandef(i).setchanranges{j};
+                scandef(i).trafofn{j}=@(x, y) x(i)*setchanranges(2)+(1-x(i))*setchanranges(1);
+            end
         end
     end
 end
@@ -100,10 +105,6 @@ end
 
 if ~isfield(scandef, 'trafofn')
     [scandef.trafofn] = deal({});
-end
-
-if ~isfield(scandef, 'procfn')
-    [scandef.procfn] = deal([]);
 end
 
 if ~isfield(scandef, 'ramptime')
@@ -120,6 +121,7 @@ if ~isfield(scan, 'trafofn')
     scan.trafofn = {};
 end
 
+
 %if nargin < 2
 %    filename = 'data';
 %end
@@ -129,12 +131,11 @@ if nargin >= 2 && filename(2)~=':'
         filename = 'data';
     end
     
-    if all(filename ~= '/')
-        filename = sprintf('sm_%s.mat', filename);
-    end
-    
+
+    filename = sprintf('sm_%s.mat', filename);
+
     str = '';
-    while (exist(filename, 'file') || exist([filename, '.mat'], 'file')) && ~strcmp(str, 'yes')
+    while exist(filename, 'file') && ~strcmp(str, 'yes')
         fprintf('File %s exists. Overwrite? (yes/no)', filename);
         while 1
             str = input('', 's');
@@ -150,6 +151,7 @@ if nargin >= 2 && filename(2)~=':'
 end
 
 
+    
 for i = 1:nloops
     if isempty(scandef(i).npoints)        
         scandef(i).npoints = length(scandef(i).rng);
@@ -165,45 +167,8 @@ for i = 1:nloops
     scandef(i).setchan = smchanlookup(scandef(i).setchan);
     scandef(i).getchan = smchanlookup(scandef(i).getchan);
     nsetchan(i) = length(scandef(i).setchan);
+    ngetchan(i) = length(scandef(i).getchan);
 
-    %procfn defaults
-    if ~isempty(scandef(i).getchan) && isempty(scandef(i).procfn) % no processing at all, each channel saved
-        [scandef(i).procfn(1:length(scandef(i).getchan)).fn] = deal([]);
-    end
-    
-    % number of channels saved.
-    ngetchan(i) = 0;%length(scandef(i).procfn); 
-    
-    for j = 1:length(scandef(i).procfn)
-        % set ngetchan to largest outdata index or procfn index where outdata not given
-        if isfield(scandef(i).procfn(j).fn, 'outdata')
-            ngetchan(i) = max([ngetchan(i), scandef(i).procfn(j).fn.outdata]);
-            
-            % index lookup from data index to function index
-            nod = length([scandef(i).procfn(j).fn.outdata]);
-            ind = sum(ngetchan(1:i-1)); % data channel index
-
-            odind(:, [scandef(i).procfn(j).fn.outdata]+ind) = [j * ones(1, nod); 1:nod];
-        else
-            odind(:, sum(ngetchan(1:i-1))+j) = [j ; 1];
-            ngetchan(i) = max(ngetchan(i), j);
-        end
-        
-        if isfield(scandef(i).procfn(j).fn, 'outdata') && ~isfield(scandef(i).procfn(j).fn, 'indata')
-            [scandef(i).procfn(j).fn.indata] = deal(scandef(i).procfn(j).fn.outdata);
-        end
-            
-        if ~isfield(scandef(i).procfn(j).fn, 'inchan')
-            for k = 1:length(scandef(i).procfn(j).fn)
-                scandef(i).procfn(j).fn(k).inchan = j;
-            end
-        end
-       
-        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan')
-            [scandef(i).procfn(j).fn.outchan] = deal(scandef(i).procfn(j).fn.inchan);
-        end
-    end
-        
     if isempty(scandef(i).ramptime)
         scandef(i).ramptime = nan(nsetchan(i), 1);
     elseif length(scandef(i).ramptime) == 1 
@@ -227,7 +192,7 @@ npoints = [scandef.npoints];
 totpoints = prod(npoints);
 
 datadim = zeros(sum(ngetchan), 5); % size of data read each time
-%newdata = cell(1, max(ngetchan));
+newdata = cell(1, max(ngetchan));
 data = cell(1, sum(ngetchan));
 ndim = zeros(1, sum(ngetchan)); % dimension of data read each time
 dataloop = zeros(1, sum(ngetchan)); % loop in which each channel is read
@@ -240,29 +205,19 @@ for i = 1:nloops
     instchan = vertcat(smdata.channels(scandef(i).getchan).instchan);            
     for j = 1:ngetchan(i)
         ind = sum(ngetchan(1:i-1))+ j; % data channel index
-        if  isfield(scandef(i).procfn(odind(1, ind)), 'dim') && ~isempty(scandef(i).procfn(odind(1, ind)).dim)
-            %get dimension of proscessed data if procfn used
-            dd = scandef(i).procfn(odind(1, ind)).dim(odind(2, ind), :);                                     
+        if isfield(scandef, 'procfn') && length(scandef(i).procfn) >= j && ~isempty(scandef(i).procfn(j).fn)
+            dd = scandef(i).procfn(j).dim; % get dimension of proscessed data if procfn defined
         else
             dd = smdata.inst(instchan(j, 1)).datadim(instchan(j, 2), :);
         end
         
-        %ndim(ind) = sum(dd > 1); % used unitl 08/03/09. See software.txt        
-        if all(dd <= 1)
-            ndim(ind) = 0;
-        else
-            ndim(ind) = find(dd > 1, 1, 'last');
-        end
+        ndim(ind) = sum(dd > 1);
+        %ndim(ind) = find(dd > 1, 1, 'last');
         % # of non-singleton dimensions
-        datadim(ind, 1:ndim(ind)) = dd(1:ndim(ind));
-        if isfield(scandef(i).procfn(odind(1, ind)).fn, 'outdata')
-            dim = datadim(ind, 1:ndim(ind));
-            % no not expand dimension if outdata given.
-        else
-            dim = [npoints(end:-1:i), datadim(ind, 1:ndim(ind))];
-        end
+        datadim(ind, 1:ndim(ind)) = dd(1:ndim(ind));          
+        dim = [npoints(end:-1:i), datadim(ind, 1:ndim(ind))];
         if length(dim) == 1
-            dim(2) = 1;
+            dim(end+1) = 1;
         end
         data{ind} = nan(dim);
         dataloop(ind) = i;
@@ -287,21 +242,14 @@ switch length(disp)
 end
 
 
-% determine the next available figure after 1000 for this measurement.  A
-% figure is available unless its userdata field is the string 'SMactive'
-figurenumber=1000;
-while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
-    figurenumber=figurenumber+1;
-end
-if ~ishandle(figurenumber);
-    figure(figurenumber)
-    set(figurenumber, 'pos', [10, 10, 800, 400]);
+if ~ishandle(1000);
+    figure(1000)
+    set(1000, 'pos', [10, 10, 800, 400]);
 else
-    figure(figurenumber);
+    figure(1000);
     clf;
 end
-set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
-set(figurenumber, 'CurrentCharacter', char(0));
+set(1000, 'CurrentCharacter', char(0));
 
 % default for disp loop
 if ~isfield(disp, 'loop')
@@ -351,9 +299,7 @@ for i = 1:length(disp)
         
         set(gca, 'ydir', 'normal');
         colorbar;
-        if dc <= length(getch)
-            title(smdata.channels(getch(dc)).name);
-        end
+        title(smdata.channels(getch(dc)).name);
         xlabel(xlab);
         ylabel(ylab);
     else
@@ -363,9 +309,7 @@ for i = 1:length(disp)
         %permute(subsref(data{dc}, s), [ndim(dc), 1:ndim(dc)-1])
         xlim(sort(x([1, end])));
         xlabel(xlab);
-        if dc <= length(getch)
-            ylabel(smdata.channels(getch(dc)).name);
-        end
+        ylabel(smdata.channels(getch(dc)).name);
     end
 end  
 
@@ -470,7 +414,7 @@ for i = 1:totpoints
             fncall(scandef(j).trigfn);
         end
 
-        if get(figurenumber, 'CurrentCharacter') == char(27)            
+        if get(1000, 'CurrentCharacter') == char(27)            
             if isfield(scan, 'cleanupfn')
                 for k = 1:length(scan.cleanupfn)
                     scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
@@ -480,8 +424,7 @@ for i = 1:totpoints
             if nargin >= 2
                 save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
             end
-            set(figurenumber, 'CurrentCharacter', char(0));
-            set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
+            set(1000, 'CurrentCharacter', char(0));
             return;
         end
 
@@ -493,34 +436,21 @@ for i = 1:totpoints
     end
     for j = loops
         % could save a function call/data copy here - not a lot of code               
-        newdata = smget(scandef(j).getchan);
-        
+        newdata(1:ngetchan(j)) = smget(scandef(j).getchan);
+       %transfer to data arrays
         ind = sum(ngetchan(1:j-1));
-        for k = 1:length(scandef(j).procfn) 
-            
-            if isfield(scandef(j).procfn(k).fn, 'outdata')
+        for k = 1:ngetchan(j)
+            s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
+            if isfield(scandef, 'procfn') && length(scandef(j).procfn) >= k
                 for fn = scandef(j).procfn(k).fn
-                    if isempty(fn.outchan)
-                        data{ind + fn.outdata} = fn.fn(newdata{fn.inchan}, data{ind + fn.indata}, fn.args{:});
-                    else
-                        [newdata{fn.outchan}, data{ind + fn.outdata}] = fn.fn(newdata{fn.inchan}, data{ind + fn.indata}, fn.args{:});
-                    end
+                    newdata{k} = fn.fn(newdata{k}, fn.args{:});
                 end
-            else
-                for fn = scandef(j).procfn(k).fn
-                    [newdata{fn.outchan}] = fn.fn(newdata{fn.inchan}, fn.args{:});
-                end
-                s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
-                if isempty(fn)
-                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{k}); 
-                else
-                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{fn.outchan(1)});
-                end
-                % added if and else case 08/04/09. See software.txt
             end
-               
-        end    
+            data{ind + k} = subsasgn(data{ind + k}, s, newdata{k}); 
+        end
         
+        % process data, 
+     
         % display data. 
         for k = find([disp.loop] == j)
             dc = disp(k).channel;
@@ -556,7 +486,7 @@ for i = 1:totpoints
             fncall(scandef(j).datafn, xt, data);
         end
 
-        if get(figurenumber, 'CurrentCharacter') == char(27)
+        if get(1000, 'CurrentCharacter') == char(27)
             if isfield(scan, 'cleanupfn')
                 for k = 1:length(scan.cleanupfn)
                     scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
@@ -566,8 +496,7 @@ for i = 1:totpoints
             if nargin >= 2
                 save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
             end
-            set(figurenumber, 'CurrentCharacter', char(0));
-            set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
+            set(1000, 'CurrentCharacter', char(0));
             return;
         end
     
@@ -584,7 +513,6 @@ if isfield(scan, 'cleanupfn')
         scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
     end
 end
-set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
 
 if nargin >= 2
     save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
