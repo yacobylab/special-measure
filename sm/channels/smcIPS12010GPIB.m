@@ -8,6 +8,8 @@ function val = smcIPS12010GPIB(ico, val, rate)
 %               EOSCharCode = 'CR'
 %               EOSMode = 'read'
 
+
+
 global smdata;
 IPSaddress = 25; % for He4 station
 
@@ -61,7 +63,7 @@ switch ico(2) % channel
                         % get out of persistent mode [code from magpersistoff]
                         
                             % turn off switch heater to be safe
-                            fprintf(mag, '%s\r', 'H0'); fscanf(mag)  
+                            fprintf(mag, '%s\r', 'H0'); fscanf(mag);  
                             pause(3);
 
                             % make the persistent field value the setpoint
@@ -84,24 +86,24 @@ switch ico(2) % channel
                             end
 
                             % switch on heater
-                            fprintf(mag, '%s\r', 'H1'); fscanf(mag)  
+                            fprintf(mag, '%s\r', 'H1'); fscanf(mag);  
                         
-                        
+                        pause(10);
                         % set the field target
                         fprintf(smdata.inst(ico(1)).data.inst, '%s\r', ['J' num2str(val)]);
-                        fscanf(smdata.inst(ico(1)).data.inst)
+                        fscanf(smdata.inst(ico(1)).data.inst);
                     
                         % go to target field
                         fprintf(smdata.inst(ico(1)).data.inst, '%s\r', 'A1');
-                        fscanf(smdata.inst(ico(1)).data.inst)
+                        fscanf(smdata.inst(ico(1)).data.inst);
                     
                         waittime = abs(val-curr)/abs(rate);
                     
                         pause(waittime+5);
                         
-                        fprintf(mag, '%s\r', 'H0'); fscanf(mag)  % turn off switch heater
+                        fprintf(mag, '%s\r', 'H0'); fscanf(mag);  % turn off switch heater
                         pause(10);
-                        fprintf(mag, '%s\r', 'A2'); fscanf(mag)  % set leads to zero
+                        fprintf(mag, '%s\r', 'A2'); fscanf(mag);  % set leads to zero
                     end
                         
                     val = 0;                   
@@ -116,13 +118,13 @@ switch ico(2) % channel
 
                     % put instrument in remote controlled mode
                     fprintf(mag, '%s\r', 'C3');
-                    fscanf(mag)
+                    fscanf(mag);
                     
                     
 
                     % set the rate
                     fprintf(mag, '%s\r', ['T' num2str(rateperminute)]);
-                    fscanf(mag)
+                    fscanf(mag);
 
 
                     % read the current field value
@@ -134,11 +136,11 @@ switch ico(2) % channel
 
                     % set the field target
                     fprintf(mag, '%s\r', ['J' num2str(val)]);
-                    fscanf(mag)
+                    fscanf(mag);
 
                     % go to target field
                     fprintf(mag, '%s\r', 'A1');
-                    fscanf(mag)
+                    fscanf(mag);
 
 
                     val = abs(val-curr)/abs(rate);
