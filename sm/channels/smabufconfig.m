@@ -117,6 +117,12 @@ for i = 1:length(instruments)
             smdata.inst(ind).datadim(1:4, 1) = npoints;
 
         case 'ATS660'
+            
+            %smdata.inst(ind).cntrlfn() %needs channel info -> revise
+            %concept.
+            smcATS660v2([ind, 1, 5], npoints, rate);
+            
+        case -1;
             rngtab = [.2 .4 .8, 2, 5, 8, 16
                        6, 7, 9,11,12,14, 18];
             for ch = 1:2
@@ -145,6 +151,8 @@ for i = 1:length(instruments)
             
             smdata.inst(ind).data.downsamp = downsamp;
             rate = rate/downsamp;
+
+            smdata.inst(ind).data.nrec = 0;
     end
 end
 if isempty(strfind(cntrl, 'conffn'))
