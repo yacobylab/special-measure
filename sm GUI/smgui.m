@@ -1,9 +1,12 @@
 function varargout = smgui(varargin)
 % Runs special measure's GUI
+% to fix: -- deselect plots after changing setchannels
+%         -- selecting files/directories/run numbers
+%         -- add notifications + smaux compatibility
     
    %  Create and then hide the GUI as it is being constructed.
-   f = figure('Visible','off',...
-       'Name','Special Measure v0.5',...
+   f = figure('Visible','on',...
+       'Name','Special Measure v0.7',...
        'NumberTitle','off',...
        'Position',[300,300,900,920],...
        'Toolbar','none',...
@@ -146,10 +149,10 @@ function varargout = smgui(varargin)
     numloops_sth = uicontrol('Parent',ht(2),'Style','text',...
         'String','Loops:',...
         'HorizontalAlignment','right',...
-        'Position',[5 660 80 15]);
+        'Position',[5 640 40 15]);
     numloops_eth = uicontrol('Parent',ht(2),'Style','edit',...
         'String','1',...
-        'Position',[95 660 20 20],...
+        'Position',[55 640 20 20],...
         'Callback',@numloops_eth_Callback);
     
     loadscan_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
@@ -161,29 +164,74 @@ function varargout = smgui(varargin)
         'Position',[95 860 80 25],...
         'Callback',@savescan_pbh_Callback);  
     
-    savedata_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
-        'String','Data File',...
-        'Position',[5 830 170 25],...
-        'Callback',@savedata_pbh_Callback);
-    datapath_sth = uicontrol('Parent',ht(2),'Style','text',...
-        'String','',...
-        'HorizontalAlignment','center',...
-        'FontSize',10,...
-        'Position',[5 805 170 20]);
+
     
-    saveppt_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
-        'String','Add to Presentation',...
-        'Position',[5 770 170 25],...
-        'Callback',@saveppt_pbh_Callback);
-    pptfile_sth = uicontrol('Parent',ht(2),'Style','text',...
-        'String','',...
-        'HorizontalAlignment','center',...
-        'FontSize',10,...
-        'Position',[5 745 170 20]);
+    pptpanel = uipanel('Parent',ht(2),'Title','PowerPoint Log',...
+        'Units','pixels',...
+        'Position',[3 795 174 60]);
+        saveppt_pbh = uicontrol('Parent',pptpanel,'Style','pushbutton',...
+            'String','File',...
+            'Position',[4 27 60 20],...
+            'FontSize',8,...
+            'Callback',@saveppt_pbh_Callback); 
+        pptfile_sth = uicontrol('Parent',pptpanel,'Style','text',...
+            'String','',...
+            'HorizontalAlignment','center',...
+            'FontSize',7,...
+            'Position',[2 2 167 23]);
+        appendppt_cbh = uicontrol('Parent',pptpanel,'Style','checkbox',...
+            'String','Log',...
+            'Position',[100 26 60 20],...
+            'HorizontalAlignment','left',...
+            'FontSize',8);
+        
+    datapanel = uipanel('Parent',ht(2),'Title','Data File',...
+        'Units','pixels',...
+        'Position',[3 700 174 88]);
+        savedata_pbh = uicontrol('Parent',datapanel,'Style','pushbutton',...
+            'String','Path',...
+            'Position',[4 53 60 20],...
+            'Callback',@savedata_pbh_Callback);
+        datapath_sth = uicontrol('Parent',datapanel,'Style','text',...
+            'String','',...
+            'HorizontalAlignment','left',...
+            'FontSize',7,...
+            'Max',20,...
+            'Position',[70 53 90 23]);
+        filename_pbh = uicontrol('Parent',datapanel,'Style','pushbutton',...
+            'String','File',...
+            'HorizontalAlignment','right',...
+            'FontSize',8,...
+            'ToolTipString','Full file name = path\filename_run.mat',...
+            'Position',[4 28 60 20],...
+            'Callback',@filename_pbh_Callback);
+        filename_eth = uicontrol('Parent',datapanel,'Style','edit',...
+            'String','',...
+            'HorizontalAlignment','left',...
+            'FontSize',8,...
+            'Position',[65 30 100 15]);
+        runnumber_sth = uicontrol('Parent',datapanel,'Style','text',...
+            'String','Run:',...
+            'HorizontalAlignment','right',...
+            'FontSize',8,...
+            'Position',[4 5 30 15]);
+        runnumber_eth = uicontrol('Parent',datapanel,'Style','edit',...
+            'String','',...
+            'HorizontalAlignment','left',...
+            'FontSize',8,...
+            'Position',[40 5 25 15],...
+            'Callback',@runnumber_eth_Callback);     
+        autoincrement_cbh = uicontrol('Parent',datapanel,'Style','checkbox',...
+            'String','AutoIncrement',...
+            'HorizontalAlignment','left',...
+            'FontSize',7,...
+            'ToolTipString','Selecting this will automatically increase run after hitting measure',...
+            'Position',[90 5 80 15]);   
+        
             
     smrun_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
-        'String','Run',...
-        'Position',[5 710 170 25],...
+        'String','Measure',...
+        'Position',[5 670 170 25],...
         'Callback',@smrun_pbh_Callback);
     
     
@@ -224,9 +272,8 @@ function varargout = smgui(varargin)
     
     mInputArgs = varargin;  % Command line arguments when invoking the GUI
     mOutputArgs = {};       % Variable for storing output when GUI returns
-    global smdata smscan;
+    global smdata smscan smaux;
     datasavefile='';
-    pptsavefile='';
     plotchoices.string={};
     plotchoices.loop=[];
 
@@ -259,6 +306,30 @@ function varargout = smgui(varargin)
         smscan.comments='';
     else
         scaninit;
+    end
+    
+    if isstruct(smaux)
+        if isfield(smaux,'pptsavefile')
+            [pptsavefilepath pptsavefilename pptextension]=fileparts(smaux.pptsavefile);
+            set(pptfile_sth,'String',pptsavefilename);
+            set(pptfile_sth,'TooltipString',smaux.pptsavefile);
+            set(appendppt_cbh,'Value',1);
+        end
+        
+        if isfield(smaux,'datadir')
+            seplocations=findstr(filesep,smaux.datadir);
+            displaystring=smaux.datadir(seplocations(end-1)+1:end);
+            if length(displaystring)>40
+                displaystring=displaystring(end-39:end);
+            end
+            set(datapath_sth,'String',displaystring);
+            set(datapath_sth,'TooltipString',smaux.datadir);
+        end
+        
+        if isfield(smaux,'run')
+            set(runnumber_eth,'String',smaux.run);
+            runnumber_eth_Callback(runnumber_eth);
+        end
     end
     
     function scaninit
@@ -1035,7 +1106,7 @@ function varargout = smgui(varargin)
         elseif k==6 % change the stepsize *FOR ALL CHANNELS IN THIS LOOP*
             val = str2double(get(hObject,'String'));
             range=smscan.loops(i).setchanranges{j}(2)-smscan.loops(i).setchanranges{j}(1);
-            smscan.loops(i).npoints=range/val+1;
+            smscan.loops(i).npoints=floor(range/val+1);
             set(loopvars_eth(i,1),'String',smscan.loops(i).npoints);
             for c=1:smscan.loops(i).numchans
                 makeloopchannelset(i,c)
@@ -1068,7 +1139,7 @@ function varargout = smgui(varargin)
         elseif k==6 % change the stepsize 
             val = str2double(get(hObject,'String'));
             range=smscan.loops(i).rng(2)-smscan.loops(i).rng(1);
-            smscan.loops(i).npoints=range/val+1;
+            smscan.loops(i).npoints=floor(range/val+1);
             set(loopvars_eth(i,1),'String',smscan.loops(i).npoints);
             for c=1:smscan.loops(i).numchans
                 makeloopchannelset(i,c)
@@ -1085,6 +1156,7 @@ function varargout = smgui(varargin)
         else
             smscan.loops(i).getchan{j}=smdata.channels(get(hObject,'Value')-1).name;
         end
+        smscan.disp=[];
         makelooppanels;
     end
 
@@ -1124,41 +1196,138 @@ function varargout = smgui(varargin)
     
     % Callback for data file location pushbutton
     function savedata_pbh_Callback(hObject,eventdata)
+        %[savedataFile,savedataPath] = uiputfile('*.mat','Save Data As');
+        smaux.datadir = uigetdir;
+        %datasavefile=fullfile(savedataPath,savedataFile);
+        seplocations=findstr(filesep,smaux.datadir);
+        displaystring=smaux.datadir(seplocations(end-1)+1:end);
+        if length(displaystring)>40
+            displaystring=displaystring(end-39:end);
+        end
+        set(datapath_sth,'String',displaystring);
+        set(datapath_sth,'TooltipString',smaux.datadir);
+    end
+
+    function filename_pbh_Callback(hObject,eventdata)
         [savedataFile,savedataPath] = uiputfile('*.mat','Save Data As');
-        datasavefile=fullfile(savedataPath,savedataFile);       
-        set(datapath_sth,'String',savedataFile);
-        set(datapath_sth,'TooltipString',datasavefile);
+        if savedataPath ~= 0 
+            smaux.datadir=savedataPath(1:end-1);
+            seplocations=findstr(filesep,smaux.datadir);
+            displaystring=smaux.datadir(seplocations(end-1)+1:end);
+            if length(displaystring)>40
+                displaystring=displaystring(end-39:end);
+            end
+            set(datapath_sth,'String',displaystring);
+            set(datapath_sth,'TooltipString',smaux.datadir);
+
+            savedataFile=savedataFile(1:end-4); %crop off .mat
+            separators=strfind(savedataFile,'_');
+            if separators
+                runstring=savedataFile(separators(end)+1:end);
+                rundouble=str2double(runstring);
+                if ~isnan(rundouble)
+                    runint=uint16(rundouble);
+                    smaux.run=runint;
+                    set(runnumber_eth,'String',smaux.run);
+                    savedataFile=savedataFile(1:separators(end)-1); %crop off runstring
+                end
+            end
+            set(filename_eth,'String',savedataFile);          
+        end
     end
 
     % Callback for ppt file location pushbutton
     function saveppt_pbh_Callback(hObject,eventdata)
         [pptFile,pptPath] = uiputfile('*.ppt','Append to Presentation');
         if pptFile ~= 0
-            pptsavefile=fullfile(pptPath,pptFile);   
+            smaux.pptsavefile=fullfile(pptPath,pptFile);   
             set(pptfile_sth,'String',pptFile);
-        else
-            pptsavefile = '';
-            set(pptfile_sth,'String','');
         end
         
-        set(pptfile_sth,'TooltipString',pptsavefile);
+        set(pptfile_sth,'TooltipString',smaux.pptsavefile);
+    end
+
+    % Callback for updating run number
+    function runnumber_eth_Callback(hObject,eventdata)
+        if isempty(get(hObject,'String'))
+            set(autoincrement_cbh,'Value',0);
+            smaux.run=[];
+        else
+            val = str2double(get(hObject,'String'));
+            if ~isnan(val) && isinteger(uint16(val)) && uint16(val)>=0 && uint16(val)<=999
+                smaux.run=uint16(val);
+                set(hObject,'String',smaux.run);
+            else
+                errordlg('Please enter an integer in [000 999]','Bad Run Number');
+                set(hObject,'String','');
+            end
+        end
     end
 
     % Callback for running the scan (call to smrun)
     function smrun_pbh_Callback(hObject,eventdata)
-        if exist(datasavefile, 'file') || strcmp(datasavefile,'')
-            [savedataFile,savedataPath] = uiputfile('*.mat','Save Data As');
-            datasavefile=fullfile(savedataPath,savedataFile);
-            set(datapath_sth,'String',savedataFile);
-        else
-            [fpath,fname,fext] = fileparts(datasavefile);
-            savedataFile = [fname fext];
+        
+        % handle setting up self-ramping trigger for inner loop
+        if smscan.loops(1).ramptime<0 && isfield(smscan.loops(1).trigfn,'autoset')
+            if smscan.loops(1).ramptime<0 && smscan.loops(1).trigfn.autoset
+                smscan.loops(1).trigfn.fn=@smatrigfn;
+                smscan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan{1});
+            end
         end
-        smrun(smscan,datasavefile);
-        slide.title = savedataFile;
-        slide.body = smscan.comments;
-        slide.consts=smscan.consts;
-        smsaveppt(pptsavefile,slide,'-f1000');
+        
+        
+        % create a good filename
+        pathstring = get(datapath_sth,'String');
+        filestring = get(filename_eth,'String');      
+        runstring = get(runnumber_eth,'String');
+        if isempty(pathstring) || isempty(filestring)
+            filename_pbh_Callback(filename_pbh);
+            
+            filestring = get(filename_eth,'String');
+            if isempty(runstring)
+                datasaveFile = fullfile(smaux.datadir,[filestring '.mat']);
+            else
+                runstring=sprintf('%03u',smaux.run);
+                datasaveFile = fullfile(smaux.datadir,[filestring '_' runstring '.mat']);
+            end
+        else        
+            if isempty(runstring)
+                datasaveFile = fullfile(smaux.datadir,[filestring '.mat']);
+            else
+                runstring=sprintf('%03u',smaux.run);
+                datasaveFile = fullfile(smaux.datadir,[filestring '_' runstring '.mat']);
+            end
+
+            if exist(datasaveFile,'file')
+                if get(autoincrement_cbh,'Value') && isinteger(smaux.run)
+                     while exist(datasaveFile,'file')
+                        smaux.run=smaux.run+1;
+                        set(runnumber_eth,'String',smaux.run);
+                        runstring=sprintf('%03u',smaux.run);
+                        datasaveFile = fullfile(smaux.datadir,[filestring '_' runstring '.mat']);
+                     end
+                else
+                    filename_pbh_Callback(filename_pbh);
+                    filestring = get(filename_eth,'String');
+                    if isempty(runstring)
+                        datasaveFile = fullfile(smaux.datadir,[filestring '.mat']);
+                    else
+                        runstring=sprintf('%03u',smaux.run);
+                        datasaveFile = fullfile(smaux.datadir,[filestring '_' runstring '.mat']);
+                    end
+                end
+            end
+        end
+                    
+                
+        
+      smrun(smscan,datasaveFile);
+        if get(appendppt_cbh,'Value')
+            slide.title = [filestring '_' num2str(smaux.run)];
+            slide.body = smscan.comments;
+            slide.consts=smscan.consts;
+            smsaveppt(smaux.pptsavefile,slide,'-f1000');
+        end
     end
 
     
