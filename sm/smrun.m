@@ -36,11 +36,15 @@ function data = smrun(scan, filename)
 %   datafn
 %   procfn: struct array with fields fn and dim, one element for each
 %           getchannel. dim replaces datadim, fn is a struct array with
-%           fields fn and args. Optional fields: inchan, outchan, indata, outdata.
+%           fields fn and args. 
+%           Optional fields: inchan, outchan, indata, outdata.
 %           inchan, outchan refer to temporary storage space
 %           indata, outdata refer to data space.
 %           indata defaults to outdata if latter is given.
 %           inchan, outdata default to index of procfn, i.e. the nth function uses the nth channel of its loop.
+%           These fields can be used to implemnt complex processing by mixing and 
+%           routing data between channels. Basically, any procfn can access any data read and any
+%           previously recorded data. Further documentation will be provided when needed...
 %   trigfn: executed only after programming ramps for autochannels.
 
 global smdata;
@@ -86,8 +90,8 @@ for i=1:length(scandef)
         for j=1:length(scandef(i).setchanranges)
             setchanranges = scandef(i).setchanranges{j};
             scandef(i).trafofn{j}=@(x, y) ...
-                (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)...
-                +(scandef(i).rng(2)-x(i))/range(scandef(i).rng)*setchanranges(1);
+                (x(i)-scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(2)...
+                +(scandef(i).rng(2)-x(i))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(1);
         end
     end
 end

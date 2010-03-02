@@ -36,11 +36,14 @@ function data = smrun(scan, filename)
 %   datafn
 %   procfn: struct array with fields fn and dim, one element for each
 %           getchannel. dim replaces datadim, fn is a struct array with
-%           fields fn and args. Optional fields: inchan, outchan, indata, outdata.
+%           fields fn and args. 
+%           Optional fields: inchan, outchan, indata, outdata.
 %           inchan, outchan refer to temporary storage space
 %           indata, outdata refer to data space.
 %           indata defaults to outdata if latter is given.
 %           inchan, outdata default to index of procfn, i.e. the nth function uses the nth channel of its loop.
+%           These fields can be used to implemnt complex processing by
+%           mixing and routing data between channels. Further 
 %   trigfn: executed only after programming ramps for autochannels.
 
 global smdata;
@@ -79,16 +82,15 @@ ngetchan = zeros(1, nloops);
 % trafofn and rng fields have to be adjusted to convention
 % If there is more than one channel being ramped, the range for the loop
 % will be setchanranges{1}, and the channel values will be determined by linear
-% mapping of s onto the range for that channel.  Otherwise, the loop
-% variable will be the range for that scan.
+% mapping of this range onto the desired range for each channel.
 for i=1:length(scandef)
     if isfield(scandef(i),'setchanranges')
-            scandef(i).rng=scandef(i).setchanranges{1};
-            for j=1:length(scandef(i).setchanranges)
-                setchanranges = scandef(i).setchanranges{j};
-                scandef(i).trafofn{j}=@(x, y) ...
-                    (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)+(1-x(i))*setchanranges(1);
-            end
+        scandef(i).rng=scandef(i).setchanranges{1};
+        for j=1:length(scandef(i).setchanranges)
+            setchanranges = scandef(i).setchanranges{j};
+            scandef(i).trafofn{j}=@(x, y) ...
+                (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)...
+                +(scandef(i).rng(2)-x(i))/range(scandef(i).rng)*setchanranges(1);
         end
     end
 end

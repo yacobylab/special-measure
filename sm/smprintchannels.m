@@ -7,7 +7,7 @@ global smdata;
 
 if nargin < 1
     ch = 1:length(smdata.channels);
-else
+elseif ischar(ch)||iscell(ch)
     ch = smchanlookup(ch);
 end
 
