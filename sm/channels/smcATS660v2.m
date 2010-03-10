@@ -1,6 +1,6 @@
 function [val, rate] = smcATS660v2(ico, val, rate, varargin)
 % val = smcATS660v2(ico, val, rate, varargin)
-% ico(2)==3 sets/gets  HW sample rate.
+% ico(2) == 3 sets/gets  HW sample rate.
 % ico(3) = 5 configures. val = record length,
 % 4th argument specified number of readout operations per trigger (can be inf)
 global smdata;

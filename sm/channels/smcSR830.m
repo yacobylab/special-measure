@@ -31,6 +31,10 @@ switch ic(2) % Channel
                     [ic(2)-14, smdata.inst(ic(1)).data.currsamp+[0, npts]]);
                 val = fread(smdata.inst(ic(1)).data.inst, npts, 'single');
                 smdata.inst(ic(1)).data.currsamp =  smdata.inst(ic(1)).data.currsamp + npts;
+                
+            case 3
+                fprintf(smdata.inst(ic(1)).data.inst, 'STRT');
+
             otherwise
                 error('Operation not supported');
         end
@@ -52,6 +56,7 @@ switch ic(2) % Channel
                 elseif ic(2)==18
                     val = SR830tauvalue(val);
                 end
+
             otherwise
                 error('Operation not supported');
         end
