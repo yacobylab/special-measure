@@ -36,11 +36,15 @@ function data = smrun(scan, filename)
 %   datafn
 %   procfn: struct array with fields fn and dim, one element for each
 %           getchannel. dim replaces datadim, fn is a struct array with
-%           fields fn and args. Optional fields: inchan, outchan, indata, outdata.
+%           fields fn and args. 
+%           Optional fields: inchan, outchan, indata, outdata.
 %           inchan, outchan refer to temporary storage space
 %           indata, outdata refer to data space.
 %           indata defaults to outdata if latter is given.
 %           inchan, outdata default to index of procfn, i.e. the nth function uses the nth channel of its loop.
+%           These fields can be used to implemnt complex processing by mixing and 
+%           routing data between channels. Basically, any procfn can access any data read and any
+%           previously recorded data. Further documentation will be provided when needed...
 %   trigfn: executed only after programming ramps for autochannels.
 
 global smdata;
@@ -86,9 +90,9 @@ for i=1:length(scandef)
         scandef(i).rng=scandef(i).setchanranges{1};
         for j=1:length(scandef(i).setchanranges)
             setchanranges = scandef(i).setchanranges{j};
-            scandef(i).trafofn{j}=@(x, y) ...
-                (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)...
-                +(scandef(i).rng(2)-x(i))/range(scandef(i).rng)*setchanranges(1);
+            A = (setchanranges(2)-setchanranges(1))/(scandef(i).rng(end)-scandef(i).rng(1));
+            B = (setchanranges(1)*scandef(i).rng(end)-setchanranges(2)*scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1));
+            scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
 end
@@ -291,15 +295,19 @@ end
 % determine the next available figure after 1000 for this measurement.  A
 % figure is available unless its userdata field is the string 'SMactive'
 figurenumber=1000;
-while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
-    figurenumber=figurenumber+1;
-end
-if ~ishandle(figurenumber);
-    figure(figurenumber)
-    set(figurenumber, 'pos', [10, 10, 800, 400]);
+if isfield(scan,'figure')
+    figurenumber=scan.figure;
 else
-    figure(figurenumber);
-    clf;
+    while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
+        figurenumber=figurenumber+1;
+    end
+    if ~ishandle(figurenumber);
+        figure(figurenumber)
+        set(figurenumber, 'pos', [10, 10, 800, 400]);
+    else
+        figure(figurenumber);
+        clf;
+    end
 end
 set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
 set(figurenumber, 'CurrentCharacter', char(0));
