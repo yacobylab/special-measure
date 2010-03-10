@@ -52,15 +52,16 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
-end
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
     end
+end
+
+% set global constants for the scan, held in field scan.consts
+if isfield(scan,'consts') && ~isempty(scan.consts)
+    smset({scan.consts.setchan}, [scan.consts.val]);
 end
 
 scandef = scan.loops;
@@ -79,16 +80,15 @@ ngetchan = zeros(1, nloops);
 % trafofn and rng fields have to be adjusted to convention
 % If there is more than one channel being ramped, the range for the loop
 % will be setchanranges{1}, and the channel values will be determined by linear
-% mapping of s onto the range for that channel.  Otherwise, the loop
-% variable will be the range for that scan.
+% mapping of this range onto the desired range for each channel.
 for i=1:length(scandef)
     if isfield(scandef(i),'setchanranges')
-            scandef(i).rng=scandef(i).setchanranges{1};
-            for j=1:length(scandef(i).setchanranges)
-                setchanranges = scandef(i).setchanranges{j};
-                scandef(i).trafofn{j}=@(x, y) ...
-                    (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)+(1-x(i))*setchanranges(1);
-            end
+        scandef(i).rng=scandef(i).setchanranges{1};
+        for j=1:length(scandef(i).setchanranges)
+            setchanranges = scandef(i).setchanranges{j};
+            scandef(i).trafofn{j}=@(x, y) ...
+                (x(i)-scandef(i).rng(1))/range(scandef(i).rng)*setchanranges(2)...
+                +(scandef(i).rng(2)-x(i))/range(scandef(i).rng)*setchanranges(1);
         end
     end
 end

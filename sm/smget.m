@@ -24,7 +24,7 @@ for k = 1:nchan;
     end
 end
 
-if ishandle(1001)
+if ishandle(999)
     str = get(smdata.chandisph, 'string');
     for k = 1:nchan
         if length(data{k}) == 1 
@@ -33,4 +33,3 @@ if ishandle(1001)
     end
     set(smdata.chandisph, 'string', str);
 end
-    

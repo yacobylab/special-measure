@@ -15,7 +15,7 @@ cmds = {'OUTP 1', 'OUTP 2', 'OUTP 3', 'OUTP 4', 'FREQ', 'SLVL', ...
 switch ic(2) % Channel
     case {15, 16} % stored data, length determined by datadim
         switch ic(3)
-            case 0                
+            case 0  % get              
                 npts = smdata.inst(ic(1)).datadim(ic(2), 1);
                 while 1
                     navail = query(smdata.inst(ic(1)).data.inst, 'SPTS?', '%s\n', '%d');
@@ -31,6 +31,8 @@ switch ic(2) % Channel
                     [ic(2)-14, smdata.inst(ic(1)).data.currsamp+[0, npts]]);
                 val = fread(smdata.inst(ic(1)).data.inst, npts, 'single');
                 smdata.inst(ic(1)).data.currsamp =  smdata.inst(ic(1)).data.currsamp + npts;
+            case 3 % trigger
+                trigger(smdata.inst(ic(1)).data.inst);
             otherwise
                 error('Operation not supported');
         end

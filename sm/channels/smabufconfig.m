@@ -96,6 +96,7 @@ for i = 1:length(instruments)
                 error('More than 512 samples not supported by DMM. Correct and try again!\n');
             end
             fprintf(smdata.inst(ind).data.inst, 'TRIG:SOUR BUS');
+            %fprintf(smdata.inst(ind).data.inst, 'VOLT:NPLC 1'); %integrate 1 power line cycle
             fprintf(smdata.inst(ind).data.inst, 'SAMP:COUN %d', npoints);
             fprintf(smdata.inst(ind).data.inst, 'TRIG:DEL %f', trigdel);
             smdata.inst(ind).datadim(2, 1) = npoints;

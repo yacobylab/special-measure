@@ -52,15 +52,16 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
-end
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
     end
+end
+
+% set global constants for the scan, held in field scan.consts
+if isfield(scan,'consts') && ~isempty(scan.consts)
+    smset({scan.consts.setchan}, [scan.consts.val]);
 end
 
 scandef = scan.loops;
