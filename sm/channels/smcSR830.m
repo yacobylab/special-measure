@@ -1,4 +1,7 @@
-function val = smcSR830(ic, val, rate)
+function [val, rate] = smcSR830(ic, val, rate, ctrl)
+% [val, rate] = smcSR830(ic, val, rate, ctrl)
+% ctrl: sync (each sample triggered)
+%       trig external trigger starts acq.
 % 1: X, 2: Y, 3: R, 4: Theta, 5: freq, 6: ref amplitude
 % 7:10: AUX input 1-4, 11:14: Aux output 1:4
 % 15,16: stored data, length determined by datadim
@@ -35,8 +38,37 @@ switch ic(2) % Channel
             case 3
                 fprintf(smdata.inst(ic(1)).data.inst, 'STRT');
 
+            case 4
+                fprintf(smdata.inst(ic(1)).data.inst, 'REST');
+                smdata.inst(ic(1)).data.currsamp = 0;
+                pause(.1); %needed to give instrument time before next trigger.
+                % anything much shorter leads to delays.
+                
+            case 5
+                if nargin > 4 && strfind(ctrl, 'sync')
+                    n = 14;
+                else
+                    n = round(log2(rate)) + 4;
+                    rate = 2^-(4-n);
+                    % allow ext trig?
+                    if n < 0 || n > 13
+                        error('Samplerate not supported by SR830');
+                    end
+                end
+                %if strfind(ctrl, 'trig')
+                fprintf(smdata.inst(ic(1)).data.inst, 'REST; SEND 1; TSTR 1; SRAT %i', n);
+                %else
+                %    fprintf(smdata.inst(ic(1)).data.inst, 'REST; SEND 1; TSTR 0; SRAT %i', n);
+                %end
+                pause(.1);
+                smdata.inst(ic(1)).data.currsamp = 0;
+
+                smdata.inst(ic(1)).data.sampint = 1/rate;
+                smdata.inst(ic(1)).datadim(15:16, 1) = val;
+
             otherwise
                 error('Operation not supported');
+                
         end
         
     otherwise

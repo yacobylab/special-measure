@@ -28,6 +28,9 @@ if size(vals, 2) > 1
     vals = vals';
 end
 
+if length(vals) == 1
+    vals = vals * ones(nchan, 1);
+end
 
 % could make some variables persistent and add recycling flag argument.
 
@@ -86,7 +89,7 @@ end
 
 tramp = now;
 
-if ishandle(1001)
+if ishandle(999)
     smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));
 end
 

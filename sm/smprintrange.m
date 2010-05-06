@@ -7,6 +7,8 @@ global smdata;
 
 if nargin < 1
     ch = 1:length(smdata.channels);
+else
+    ch = smchanlookup(ch)';
 end
 
 fmt = '%2d   %-10s  %10.2g  %10.2g  %10.2g  %10.2g\n';

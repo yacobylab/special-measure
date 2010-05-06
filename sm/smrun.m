@@ -14,6 +14,8 @@ function data = smrun(scan, filename)
 %            confignfn.fn(scan, configfn.args{:}) is called before all
 %            other operations.
 % cleanupfn; same, called before exiting.
+% figure: number of figure to be plotted on. Uses next available figure
+%         starting at 1000 if Nan. 
 % loops: struct array with one element for each dimension, fields given
 %        below. The last entry is for the fastest, innermost loop
 %   fields of loops:
@@ -56,16 +58,15 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
+% set global constants for the scan, held in field scan.consts
+if isfield(scan,'consts') && ~isempty(scan.consts)
+    smset({scan.consts.setchan}, [scan.consts.val]);
+end
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
     end
-end
-
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
 end
 
 scandef = scan.loops;
@@ -294,21 +295,26 @@ end
 
 % determine the next available figure after 1000 for this measurement.  A
 % figure is available unless its userdata field is the string 'SMactive'
-figurenumber=1000;
 if isfield(scan,'figure')
     figurenumber=scan.figure;
+    if isnan(figurenumber)
+        figurenumber = 1000;
+        while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
+            figurenumber=figurenumber+1;
+        end
+    end
 else
-    while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
-        figurenumber=figurenumber+1;
-    end
-    if ~ishandle(figurenumber);
-        figure(figurenumber)
-        set(figurenumber, 'pos', [10, 10, 800, 400]);
-    else
-        figure(figurenumber);
-        clf;
-    end
+    figurenumber=1000;
 end
+if ~ishandle(figurenumber);
+    figure(figurenumber)
+    set(figurenumber, 'pos', [10, 10, 800, 400]);
+else
+    figure(figurenumber);
+    clf;
+end
+
+
 set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
 set(figurenumber, 'CurrentCharacter', char(0));
 

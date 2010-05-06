@@ -14,6 +14,8 @@ function data = smrun(scan, filename)
 %            confignfn.fn(scan, configfn.args{:}) is called before all
 %            other operations.
 % cleanupfn; same, called before exiting.
+% figure: number of figure to be plotted on. Uses next available figure
+%         starting at 1000 if Nan. 
 % loops: struct array with one element for each dimension, fields given
 %        below. The last entry is for the fastest, innermost loop
 %   fields of loops:
@@ -67,11 +69,6 @@ if isfield(scan, 'configfn')
     end
 end
 
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
-end
-
 scandef = scan.loops;
 
 if ~isfield(scan, 'disp') || isempty(scan.disp)
@@ -95,10 +92,8 @@ for i=1:length(scandef)
         for j=1:length(scandef(i).setchanranges)
             setchanranges = scandef(i).setchanranges{j};
             A = (setchanranges(2)-setchanranges(1))/(scandef(i).rng(end)-scandef(i).rng(1));
-            B = 
-            scandef(i).trafofn{j}=@(x, y) ...
-                (x(i)-scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(2)...
-                +(scandef(i).rng(2)-x(i))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(1);
+            B = (setchanranges(1)*scandef(i).rng(end)-setchanranges(2)*scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1));
+            scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
 end
@@ -303,7 +298,8 @@ end
 figurenumber=1000;
 if isfield(scan,'figure')
     figurenumber=scan.figure;
-else
+if isnan(figurenumber)
+    figurenumber = 1000;
     while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
         figurenumber=figurenumber+1;
     end
