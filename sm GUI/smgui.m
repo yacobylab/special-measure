@@ -18,7 +18,7 @@ function varargout = smgui(varargin)
     hg=uitabgroup;
     ht(1)=uitab(hg,'Title','Rack');
     ht(2)=uitab(hg,'Title','Scan');
-    ht(3)=uitab(hg,'Title','Oxford');
+    %ht(3)=uitab(hg,'Title','Oxford');
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  Construct the components.  %
@@ -983,7 +983,7 @@ function varargout = smgui(varargin)
             try
                 chanval=smchanlookup(smscan.loops(i).getchan{j})+1;
             catch 
-                errordlg([smscan.loops(i).setchan{j} ' is not a channel'],...
+                errordlg([smscan.loops(i).getchan{j} ' is not a channel'],...
                     'Invalid Channel in smscan');
                 chanval=1;
             end
@@ -1271,12 +1271,13 @@ function varargout = smgui(varargin)
     function smrun_pbh_Callback(hObject,eventdata)
         
         % handle setting up self-ramping trigger for inner loop
-        if smscan.loops(1).ramptime<0 && isfield(smscan.loops(1).trigfn,'autoset')
-            if smscan.loops(1).ramptime<0 && smscan.loops(1).trigfn.autoset
-                smscan.loops(1).trigfn.fn=@smatrigfn;
-                smscan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan{1});
-            end
+        if smscan.loops(1).ramptime<0 && (~isfield(smscan.loops(1),'trigfn') || ...
+                                            isempty(smscan.loops(1).trigfn) || ...
+                                            (isfield(smscan.loops(1).trigfn,'autoset') && smscan.loops(1).trigfn.autoset))
+            smscan.loops(1).trigfn.fn=@smatrigfn;
+            smscan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
         end
+                
         
         
         % create a good filename
@@ -1326,7 +1327,7 @@ function varargout = smgui(varargin)
         
       smrun(smscan,datasaveFile);
         if get(appendppt_cbh,'Value')
-            slide.title = [filestring '_' num2str(smaux.run)];
+            slide.title = [filestring '_' runstring '.mat'];
             slide.body = smscan.comments;
             slide.consts=smscan.consts;
             smsaveppt(smaux.pptsavefile,slide,'-f1000');
