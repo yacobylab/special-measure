@@ -56,10 +56,6 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
-% set global constants for the scan, held in field scan.consts
-if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
-end
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
@@ -95,10 +91,8 @@ for i=1:length(scandef)
         for j=1:length(scandef(i).setchanranges)
             setchanranges = scandef(i).setchanranges{j};
             A = (setchanranges(2)-setchanranges(1))/(scandef(i).rng(end)-scandef(i).rng(1));
-            B = 
-            scandef(i).trafofn{j}=@(x, y) ...
-                (x(i)-scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(2)...
-                +(scandef(i).rng(2)-x(i))/(scandef(i).rng(end)-scandef(i).rng(1))*setchanranges(1);
+            B = (setchanranges(1)*scandef(i).rng(end)-setchanranges(2)*scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1));
+            scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
 end
@@ -303,6 +297,7 @@ end
 figurenumber=1000;
 if isfield(scan,'figure')
     figurenumber=scan.figure;
+    figure(figurenumber);
 else
     while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
         figurenumber=figurenumber+1;
@@ -439,7 +434,7 @@ for i = 1:totpoints
                 smset(scandef(j).setchan, val(1:nsetchan(j)));
                 % since only the entry for this loop is changed, this
                 % procedure only makes sense if the loop is not mixed
-                % with any faster loopm by the global transformations.
+                % with any faster loop by the global transformations.
                 % Should not be a major limitation.
                 x2 = x;
                 x2(j) = scandef(j).rng(end);

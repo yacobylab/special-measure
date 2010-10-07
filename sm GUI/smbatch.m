@@ -6,12 +6,24 @@ function smbatch(scans,filename)
 
 global smaux;
 
+
+
 for i=1:length(scans)
+    if iscell(filename)
+        fn = filename{i};
+    else
+        fn = filename;
+    end
     runstring=sprintf('%03u',smaux.run);
-    datasaveFile = fullfile(smaux.datadir,[filename '_' runstring '.mat']);
+    datasaveFile = fullfile(smaux.datadir,[fn '_' runstring '.mat']);
+    while exist(datasaveFile,'file')
+        smaux.run=smaux.run+1;
+        runstring=sprintf('%03u',smaux.run);
+        datasaveFile = fullfile(smaux.datadir,[fn '_' runstring '.mat']);
+    end
     smrun(scans{i},datasaveFile);
     
-    slide.title = [filename '_' runstring];
+    slide.title = [fn '_' runstring '.mat'];
     slide.body = scans{i}.comments;
     slide.consts=scans{i}.consts;
     smsaveppt(smaux.pptsavefile,slide,'-f1000');

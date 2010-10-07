@@ -8,6 +8,12 @@ function val = smcIPS12010GPIB(ico, val, rate)
 %               EOSCharCode = 'CR'
 %               EOSMode = 'read'
 % 1/18/2010: modified to close and open magnet if behavior is sluggish
+%           currently uses tic/toc instead of cputime because of bad
+%           behavior of cputime on MX400 computer.
+%
+% 4/9/2010: added ramp support (set ramprate < 0, and use
+%   scan.loops(1).trigfn.fn=@smatrigfn.  using GUI, setting
+%   smscan.loops(1).trigfn.autoset=1 is enough.
 
 tic
 
@@ -25,6 +31,7 @@ end
 
 %Might need in setup:
 %channel 1: FIELD
+%channel 2: RAMP
 mag = smdata.inst(ico(1)).data.inst;
 
 
@@ -50,8 +57,13 @@ switch ico(2) % channel
                     % put instrument in remote controlled mode
                     fprintf(mag, '%s\r', 'C3');    fscanf(mag);
                     
+                    if rateperminute<0
+                        % set to hold
+                        fprintf(mag, '%s\r', 'A0'); fscanf(mag);
+                    end
+                    
                     % set the rate
-                    fprintf(mag, '%s\r', ['T' num2str(rateperminute)]); fscanf(mag);
+                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]); fscanf(mag);
                     
                     
                     % read current persistent field value
@@ -91,22 +103,24 @@ switch ico(2) % channel
                             % switch on heater
                             fprintf(mag, '%s\r', 'H1'); fscanf(mag);  
                         
-                        
+                        pause(10);
                         % set the field target
                         fprintf(smdata.inst(ico(1)).data.inst, '%s\r', ['J' num2str(val)]);
                         fscanf(smdata.inst(ico(1)).data.inst);
-                    
-                        % go to target field
-                        fprintf(smdata.inst(ico(1)).data.inst, '%s\r', 'A1');
-                        fscanf(smdata.inst(ico(1)).data.inst);
-                    
-                        waittime = abs(val-curr)/abs(rate);
-                    
-                        pause(waittime+5);
                         
-                        fprintf(mag, '%s\r', 'H0'); fscanf(mag);  % turn off switch heater
-                        pause(10);
-                        fprintf(mag, '%s\r', 'A2'); fscanf(mag);  % set leads to zero
+                        if rateperminute > 0
+                            % go to target field
+                            fprintf(smdata.inst(ico(1)).data.inst, '%s\r', 'A1');
+                            fscanf(smdata.inst(ico(1)).data.inst);
+
+                            waittime = abs(val-curr)/abs(rate);
+
+                            pause(waittime+5);
+
+                            fprintf(mag, '%s\r', 'H0'); fscanf(mag);  % turn off switch heater
+                            pause(10);
+                            fprintf(mag, '%s\r', 'A2'); fscanf(mag);  % set leads to zero
+                        end
                     end
                         
                     val = 0;                 
@@ -123,10 +137,13 @@ switch ico(2) % channel
                     fprintf(mag, '%s\r', 'C3');
                     fscanf(mag);
                     
-                    
+                    if rateperminute<0
+                        % set to hold
+                         fprintf(mag, '%s\r', 'A0'); fscanf(mag);
+                    end
 
                     % set the rate
-                    fprintf(mag, '%s\r', ['T' num2str(rateperminute)]);
+                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]);
                     fscanf(mag);
 
 
@@ -140,17 +157,20 @@ switch ico(2) % channel
                     % set the field target
                     fprintf(mag, '%s\r', ['J' num2str(val)]);
                     fscanf(mag);
-
-                    % go to target field
-                    fprintf(mag, '%s\r', 'A1');
-                    fscanf(mag);
-
-
+                    
                     val = abs(val-curr)/abs(rate);
-                    elapsedtime=cputime*10-t_start;
-                    if elapsedtime>2
-                        fclose(mag);
-                        fopen(mag);
+                    
+                    if rateperminute>0
+        
+                        % go to target field
+                        fprintf(mag, '%s\r', 'A1');
+                        fscanf(mag);
+                      
+                        elapsedtime=toc;
+                        if elapsedtime>2
+                            fclose(mag);
+                            fopen(mag);
+                        end
                     end
                 end
                 
@@ -167,8 +187,8 @@ switch ico(2) % channel
                     val = fscanf(mag, '%*c%f');
                  end
                  
-                 cputime*50
-                 elapsedtime=cputime*50-t_start
+
+                 elapsedtime=toc;
                 if elapsedtime>2
                     fclose(mag);
                     fopen(mag);
@@ -178,38 +198,67 @@ switch ico(2) % channel
                 error('Operation not supported');
         end
         
-    case 2
+    case 2  % ramped
         switch ico(3)
             case 1                
-                % set the rate
-                fprintf(mag, '%s\r', ['T' num2str(rateperminute)]);
-                fscanf(mag);
-
-                % read the current field value
-                fprintf(mag, '%s\r', 'R7');
-                currstring = fscanf(mag);
-                curr=str2double(currstring(2:end));
+              
                 
-                % set the field target
-                fprintf(mag, '%s\r', ['J' num2str(val)]);
-                fscanf(mag);
-                                
-                val = abs(val-curr)/abs(rate);
-                    elapsedtime=cputime*10-t_start;
+                % any way to delay trigger
+                    if abs(rateperminute) > .5; %.5 T /MIN
+                        error('Magnet ramp rate too high')
+                    end
+
+                    % put instrument in remote controlled mode
+                    fprintf(mag, '%s\r', 'C3');
+                    fscanf(mag);
+                    
+                      % set to hold
+                     fprintf(mag, '%s\r', 'A0'); fscanf(mag);
+
+                    % set the rate
+                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]);
+                    fscanf(mag);
+
+
+                    % read the current field value
+                    curr = NaN;
+                    while isnan(curr)
+                        fprintf(mag, '%s\r', 'R7');
+                        curr = fscanf(mag, '%*c%f');
+                    end
+
+                    % set the field target
+                    fprintf(mag, '%s\r', ['J' num2str(val)]);
+                    fscanf(mag);
+
+
+                    val = abs(val-curr)/abs(rate);
+                    elapsedtime=toc;
                     if elapsedtime>2
                         fclose(mag);
                         fopen(mag);
                     end
-
+                    
+                    if rateperminute>0
+                        % trigger
+                        % go to target field
+                        fprintf(mag, '%s\r', 'A1'); fscanf(mag);
+                    end
+                    
             case 0
                 % read the current field value
                 fprintf(mag, '%s\r', 'R8');
                 val = fscanf(mag, '%*c%f');
-                elapsedtime=cputime*10-t_start;
+                elapsedtime=toc;
                 if elapsedtime>2
                     fclose(mag);
                     fopen(mag);
                 end
+                
+            case 3
+                % trigger
+                % go to target field
+                fprintf(mag, '%s\r', 'A1'); fscanf(mag);
                 
             otherwise
                 error('Operation not supported');

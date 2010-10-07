@@ -297,6 +297,7 @@ end
 figurenumber=1000;
 if isfield(scan,'figure')
     figurenumber=scan.figure;
+    figure(figurenumber);
 else
     while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
         figurenumber=figurenumber+1;
@@ -433,7 +434,7 @@ for i = 1:totpoints
                 smset(scandef(j).setchan, val(1:nsetchan(j)));
                 % since only the entry for this loop is changed, this
                 % procedure only makes sense if the loop is not mixed
-                % with any faster loopm by the global transformations.
+                % with any faster loop by the global transformations.
                 % Should not be a major limitation.
                 x2 = x;
                 x2(j) = scandef(j).rng(end);
