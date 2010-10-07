@@ -18,5 +18,10 @@ end
 chanind = zeros(length(channels), 1);
 
 for i = 1:length(channels)
-    chanind(i) = strmatch(channels{i}, strvcat(smdata.channels.name), 'exact');
+    m = strmatch(channels{i}, strvcat(smdata.channels.name), 'exact');
+    if(isempty(m))
+        error(sprintf('Unable to find sm channel "%s"\n',channels{i}));
+    else
+        chanind(i) = m;
+    end
 end

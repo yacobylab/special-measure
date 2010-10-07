@@ -28,8 +28,10 @@ if size(vals, 2) > 1
     vals = vals';
 end
 
+if length(vals) == 1
+    vals = vals * ones(nchan, 1);
+end
 
-% could make some variables persistent and add recycling flag argument.
 
 rangeramp = vertcat(smdata.channels(channels).rangeramp);
 instchan = vertcat(smdata.channels(channels).instchan);
@@ -37,6 +39,10 @@ instchan = vertcat(smdata.channels(channels).instchan);
 if nargin >= 3 %&& ~isempty(ramprate)
     if size(ramprate, 2) > 1
         ramprate = ramprate';
+    end
+
+    if length(ramprate) == 1
+        ramprate = ramprate * ones(nchan, 1);
     end
 
     mask = isfinite(ramprate);
@@ -86,7 +92,7 @@ end
 
 tramp = now;
 
-if ishandle(1001)
+if ishandle(999)
     smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));
 end
 
@@ -122,7 +128,7 @@ end
 for k = stepchan'    
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], vals2(k));
 end
-if ishandle(1001)
+if ishandle(999)
     smdispchan(channels(stepchan), vals(stepchan));
 end
 

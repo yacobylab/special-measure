@@ -1,4 +1,6 @@
 function [newdata, data] = smpSpect2(newdata, data)
+% always computes auto and cross correlation spectrum with first pulse
+% allows window to be larger than single data record
 
 persistent olddata;
 persistent nold;

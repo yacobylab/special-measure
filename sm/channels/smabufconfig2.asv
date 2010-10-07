@@ -1,0 +1,37 @@
+function scan = smabufconfig2(scan, cntrl)
+% scan = smabufconfig2(scan, cntrl)
+% configure buffered acquisition for fastest loop 
+% cntrl: trig : use smatrigfn
+%        allinst: configure all get channels
+% possible extensions (not implemented): 
+% configure rearming function via driver
+% 
+
+global smdata;
+
+ic = smchaninst(scan.loops(2).getchan);
+
+if nargin < 2 
+    cntrl = '';
+end
+
+ic = smchaninst(scan.loops(2).getchan);
+
+% may need to extend to allow more options here,
+% e.g. do all channels or all different instruments.
+if strfind(cntrl, 'allinst')
+    irng = 1:size(ic, 1);
+else
+    irng = 1;
+end
+
+for i = irng
+    [scan.loops(1).npoints, rate] = smdata.inst(ic(i, 1)).cntrlfn([ic(i, :), 4], scan.loops(1).npoints, ...
+        -1/scan.loops(1).ramptime);
+    scan.loops(1).ramptime = -1/rate;
+end
+
+if strfind(cntrl, 'trig')
+    scan.loops(1).trigfn.fn = @smatrigfn;
+    scan.loops(1).trigfn.args = {[smchaninst(scan.loops(1).setchan); ic]};
+end

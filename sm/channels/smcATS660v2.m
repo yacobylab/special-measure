@@ -83,6 +83,9 @@ switch ico(3)
         if smdata.inst(ico(1)).data.samprate >0
             downsamp = floor(smdata.inst(ico(1)).data.samprate/rate);
             rate = smdata.inst(ico(1)).data.samprate;
+            if downsamp == 0
+                error('Sample rate too large.')
+            end
         else
             downsamp = 1;
         end

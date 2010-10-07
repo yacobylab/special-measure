@@ -30,3 +30,46 @@ Syncronized channels directory with qDots/sm/channels
 
 06/29/09 Hendrik
  - added marker levels as channels to AWG520.
+
+06/30/09 Hendrik
+ - Added option to save only every nth iteration of saveloop.
+
+07/13/09 Vivek
+ - Moved the handling of 'setchanranges' field to after copying scan.loops into
+   scandef.
+
+08/02/09 Hendrik
+ - Implemented more advanced processing function handling. New version still
+  in qDots/matlab/smdev.m until proven stable.
+ - New smcATS660v2.m, supporting continuous acquisition and providing 
+   configuration and rearming functionality. To be considered a model for
+   generic buffer support.
+
+09/19/09 Hendrik
+ - added samprate channel to smcATS660v2.m
+ - tightened code for setting consts in smdev, changed smscan to scan there.
+ - Wrote driver for Keithley2400 a while ago (with Thomas, may live on other
+   computer)
+
+09/24/09 Hendrik
+- copied smdev.m to ygroup/qDots/MATLAB/sm/smrun.m
+- supressed adding "sm_" to filename in smrun if filename contains "/".
+
+10/24/09 Hendrik
+- incorporated changes in MATLAB/sm into MATLAB/Special_Measure/sm
+
+03/25/10 Hendrik
+- changed smrun to set constants before calling configfn.
+- wrote smabufconfig2 for generic configuration of buffered acquisition
+- Vivek changed figure number for channel display.
+- Improved smprintrange.
+- Modified smcATS660v2.m to throw error for (some) invalid samplerates.
+
+05/06/10 Hendrik
+- implemented smrestore.m and sminc.m
+- updated smpSpect[2].m
+- improved buffered acquisition support by smcSR830
+- added arming functionality to smatrigfn.m
+
+05/13/10 Hendrik
+- changed smrun to allow arguments to trafofn's.

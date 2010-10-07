@@ -3,7 +3,10 @@ function val = smcIPS12010GPIB(ico, val, rate)
 % settings for GPIB:
 % usually board index is 0, address is 25
 % can change Timeout to 1
-% make sure to change the following
+% make sure to change the following:
+%               type smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOIMode = 'off'
+%               type smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSCharCode = 'CR'
+%               type smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSMode = 'read'
 %               EOIMode = 'off'
 %               EOSCharCode = 'CR'
 %               EOSMode = 'read'
@@ -166,7 +169,7 @@ switch ico(2) % channel
                         fprintf(mag, '%s\r', 'A1');
                         fscanf(mag);
                       
-                        elapsedtime=toc;
+                    elapsedtime=toc;
                         if elapsedtime>2
                             fclose(mag);
                             fopen(mag);

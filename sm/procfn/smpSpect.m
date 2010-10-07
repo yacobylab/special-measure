@@ -1,4 +1,7 @@
 function [newdata, data] = smpSpect(newdata, data)
+% compute auto correlation of one or two pulses, plus optionally 
+% the difference spectrum. 
+% Windows must be smaller than a single record (?).
 
 persistent olddata;
 persistent nold;
