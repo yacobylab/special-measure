@@ -3,10 +3,10 @@ function val = smcIPS12010GPIB(ico, val, rate)
 % settings for GPIB:
 % usually board index is 0, address is 25
 % can change Timeout to 1
-% make sure to change the following
-%               EOIMode = 'off'
-%               EOSCharCode = 'CR'
-%               EOSMode = 'read'
+% make sure to type the following into the matlab command line:
+%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOIMode = 'off'
+%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSCharCode = 'CR'
+%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSMode = 'read'
 % 1/18/2010: modified to close and open magnet if behavior is sluggish
 %           currently uses tic/toc instead of cputime because of bad
 %           behavior of cputime on MX400 computer.

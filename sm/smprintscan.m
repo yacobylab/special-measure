@@ -44,10 +44,18 @@ for i = 1:length(scan.loops)
     if isfield(scan.loops(i), 'trafofn')
             fprintf('\nTransform''s  : ')
             for j = 1:length(scan.loops(i).trafofn)
-                if isempty(scan.loops(i).trafofn{j})
-                     fprintf('%-15s ', 'identity');
+                if iscell(scan.loops(i).trafofn)
+                    if isempty(scan.loops(i).trafofn{j})
+                        fprintf('%-15s ', 'identity');
+                    else
+                        fprintf('%-15s ', func2str(scan.loops(i).trafofn{j}));
+                    end
                 else
-                    fprintf('%-15s ', func2str(scan.loops(i).trafofn{j}));
+                    if isempty(scan.loops(i).trafofn(j).fn)
+                        fprintf('%-15s ', 'identity');
+                    else
+                        fprintf('%-15s ', func2str(scan.loops(i).trafofn(j).fn));
+                    end
                 end
             end
     end

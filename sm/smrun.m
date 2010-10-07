@@ -222,9 +222,14 @@ for i = 1:nloops
        [scandef(i).trafofn{1:nsetchan(i)}] = deal(@(x, y) x(i));
     else
         for j = 1:nsetchan(i)
-            if isempty(scandef(i).trafofn{j})
-                scandef(i).trafofn{j} = @(x, y) x(i);
-            end
+            if iscell(scandef(i).trafofn)
+                if isempty(scandef(i).trafofn{j})
+                    scandef(i).trafofn{j} = @(x, y) x(i);
+                end
+            elseif isempty(scandef(i).trafofn(j).fn)
+                scandef(i).trafofn(j).fn = @(x, y) x(i);
+                scandef(i).trafofn(j).args = {};
+            end                
         end
     end
 end
@@ -385,14 +390,20 @@ for i = 1:length(disp)
 end  
 
 x = zeros(1, nloops);
-val = zeros(1, max(nsetchan));
-val2 = zeros(1, max(nsetchan));
 %filename = sprintf('sm_%02d%02d%02d_%02d%02d')
 
 
 configvals = cell2mat(smget(smdata.configch));
 configch = {smdata.channels(smchanlookup(smdata.configch)).name};
-configdata = fncall(smdata.configfn);
+
+configdata = cell(1, length(smdata.configfn));
+for i = 1:length(smdata.configfn)
+    if iscell(smdata.configfn)
+        configdata{i} = smdata.configfn{i}();
+    else
+        configdata{i} = smdata.configfn(i).fn(smdata.configfn(i).args);   
+    end
+end
 
 if nargin >= 2
     save(filename, 'configvals', 'configdata', 'scan', 'configch');
@@ -418,15 +429,13 @@ for i = 1:totpoints
 
     xt = x;  
     for k = 1:length(scan.trafofn)
-        xt = scan.trafofn{k}(xt);
+        xt = trafocall(scan.trafofn(k), xt);
     end
 
     for j = fliplr(loops)
         
-        for k = 1:nsetchan(j)
-            val(k) = scandef(j).trafofn{k}(xt, smdata.chanvals);
-        end    
-
+        val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);
+        
         autochan = scandef(j).ramptime < 0;
         scandef(j).ramptime(autochan) = min(scandef(j).ramptime(autochan));
         % this is a bit of a hack
@@ -445,12 +454,10 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
-                    x2 = scan.trafofn{k}(x2);
+                    x2 = trafocall(scan.trafofn(k), x2);
                 end
 
-                for k = 1:nsetchan(j)
-                    val2(k) = scandef(j).trafofn{k}(x2, smdata.chanvals);
-                end
+                val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
 
                 % compute ramp rate for all steps.
                 ramprate{j} = abs((val2(1:nsetchan(j))-val(1:nsetchan(j))))'...
@@ -606,27 +613,27 @@ if nargin >= 2
 end
 end
 
-function res = fncall(fns, varargin)   
-    if nargout > 0
-        res = cell(1, length(fns));
-        if iscell(fns)
-            for i = 1:length(fns)
-                res{i} = fns{i}(varargin{:});
-            end
-        else
-            for i = 1:length(fns)
-                res{i} = fns(i).fn( varargin{:}, fns(i).args{:});
-            end
-        end
-    else
-        if iscell(fns)
-            for i = 1:length(fns)
-                fns{i}(varargin{:});
-            end
-        else
-            for i = 1:length(fns)
-                fns(i).fn(varargin{:}, fns(i).args{:});
-            end
-        end
+function fncall(fns, varargin)   
+if iscell(fns)
+    for i = 1:length(fns)
+        fns{i}(varargin{:});
     end
+else
+    for i = 1:length(fns)
+        fns(i).fn(varargin{:}, fns(i).args{:});
+    end
+end
+end
+
+function v = trafocall(fn, varargin)   
+v = zeros(1, length(fn));
+if iscell(fn)
+    for i = 1:length(fn)
+        v(i) = fn{i}(varargin{:});
+    end
+else
+    for i = 1:length(fn)
+        v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
+    end
+end
 end

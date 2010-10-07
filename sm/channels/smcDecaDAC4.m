@@ -37,7 +37,7 @@ switch ic(3)
         val = max(min(val, 65535), 0);
                 
         if mod(ic(2)-1, 2) % ramp
-            rate2 = int32(abs(rate) / diff(rng) * 2^32 * 1e-6 * smdata.inst(ic(1)).data.update(floor((ic(2)+1)/2)));
+            rate2 = int32(abs(rate / diff(rng)) * 2^32 * 1e-6 * smdata.inst(ic(1)).data.update(floor((ic(2)+1)/2)));
                 
             curr = dacread(smdata.inst(ic(1)).data.inst, ...
                 sprintf('B%1d;C%1d;d;', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)), '%*7c%d');

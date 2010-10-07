@@ -71,4 +71,8 @@ Syncronized channels directory with qDots/sm/channels
 - improved buffered acquisition support by smcSR830
 - added arming functionality to smatrigfn.m
 
+05/13/10 Hendrik
+- changed smrun to allow arguments to trafofn's.
 
+06/01/10 Hendrik
+- changed smset to expand ramprate if only single value given.
