@@ -128,7 +128,11 @@ set(pic1,'Top',single(108));
 
 
 
-
+for i=1:length(text.consts)
+    if text.consts(i).set
+        text.consts(i).setchan = ['$' text.consts(i).setchan];
+    end
+end
 
 if (~isempty(text.consts))&&(~isempty(text.body))
     g1=[];

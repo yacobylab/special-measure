@@ -3,7 +3,8 @@ function varargout = smgui(varargin)
 % to fix: -- deselect plots after changing setchannels
 %         -- selecting files/directories/run numbers
 %         -- add notifications + smaux compatibility
-    
+
+    global smdata smscan smaux;
    %  Create and then hide the GUI as it is being constructed.
    f = figure('Visible','on',...
        'Name','Special Measure v0.7',...
@@ -272,7 +273,6 @@ function varargout = smgui(varargin)
     
     mInputArgs = varargin;  % Command line arguments when invoking the GUI
     mOutputArgs = {};       % Variable for storing output when GUI returns
-    global smdata smscan smaux;
     datasavefile='';
     plotchoices.string={};
     plotchoices.loop=[];
@@ -1271,16 +1271,13 @@ function varargout = smgui(varargin)
     function smrun_pbh_Callback(hObject,eventdata)
         
         % handle setting up self-ramping trigger for inner loop
-        if smscan.loops(1).ramptime<0
-            if isempty(smscan.loops(1).trigfn)
-                 smscan.loops(1).trigfn.fn=@smatrigfn;
-                 smscan.loops(1).trigfn.args=smchaninst(smscan.loops(1).setchan);
-            if isfield(smscan.loops(1).trigfn,'autoset')
-                if smscan.loops(1).ramptime<0 && smscan.loops(1).trigfn.autoset
-                    smscan.loops(1).trigfn.fn=@smatrigfn;
-                    smscan.loops(1).trigfn.args=smchaninst(smscan.loops(1).setchan);
-                end
-            end
+        if smscan.loops(1).ramptime<0 && (~isfield(smscan.loops(1),'trigfn') || ...
+                                            isempty(smscan.loops(1).trigfn) || ...
+                                            (isfield(smscan.loops(1).trigfn,'autoset') && smscan.loops(1).trigfn.autoset))
+            smscan.loops(1).trigfn.fn=@smatrigfn;
+            smscan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
+        end
+                
         
         
         % create a good filename

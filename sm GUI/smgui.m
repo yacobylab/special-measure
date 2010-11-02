@@ -3,139 +3,66 @@ function varargout = smgui(varargin)
 % to fix: -- deselect plots after changing setchannels
 %         -- selecting files/directories/run numbers
 %         -- add notifications + smaux compatibility
+
+    global smdata smscan smaux;
+   
+    if isfield(smaux,'smgui') && ishandle(smaux.smgui)
+        figure(smaux.smgui)
+        movegui(smaux.smgui,'center')
+        return
+    end
     
-   %  Create and then hide the GUI as it is being constructed.
-   f = figure('Visible','on',...
+    
+    %  Create and then hide the GUI as it is being constructed.
+   smaux.smgui = figure('Visible','on',...
        'Name','Special Measure v0.7',...
+       'MenuBar','none', ...
        'NumberTitle','off',...
+       'IntegerHandle','off',...
        'Position',[300,300,900,920],...
        'Toolbar','none',...
        'Resize','off');
-   movegui(f,'center')
+   movegui(smaux.smgui,'center')
    
+   %put everything in this panel for aesthetic purposes
+   nullpanel=uipanel('Parent',smaux.smgui,...
+        'Units','pixels','Position',[0,0,905,925]);
+    
+    %Menu Configuration
+    FileMenu = uimenu('Parent',smaux.smgui,...
+        'HandleVisibility','callback',...
+        'Label','File');
+    
+        OpenScan = uimenu('Parent',FileMenu,...
+            'Label','Open Scan',...
+            'HandleVisibility','Callback',...
+            'Accelerator','o',...
+            'Callback',@loadscan_pbh_Callback);
+        SaveScan = uimenu('Parent',FileMenu,...
+            'Label','Save Scan',...
+            'HandleVisibility','Callback',...
+            'Accelerator','s',...
+            'Callback',@savescan_pbh_Callback);
 
-   % Setup Tabs
-    hg=uitabgroup;
-    ht(1)=uitab(hg,'Title','Rack');
-    ht(2)=uitab(hg,'Title','Scan');
-    %ht(3)=uitab(hg,'Title','Oxford');
+        OpenRack = uimenu('Parent',FileMenu,...
+            'Separator','on',...
+            'Label','Open Rack',...
+            'HandleVisibility','Callback',...
+            'Callback',@openrackCallback);
+        SaveRack = uimenu('Parent',FileMenu,...
+            'Label','Save Rack',...
+            'HandleVisibility','Callback',...
+            'Callback',@saverackCallback);
+        EditRack = uimenu('Parent',FileMenu,...
+            'Label','Edit Rack',...
+            'HandleVisibility','Callback',...
+            'Callback',@editrackCallback);
 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %  Construct the components.  %
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    %
-    % Rack
-    %
-    
-    %  Panel for Instruments
-    instpanel = uipanel('Parent',ht(1),'Title','Instruments',...
-        'Units','pixels',...
-        'Position',[50 50 200 780]);
-        % Textbox for instrument number (first column)
-        insttext1 = uicontrol('Parent',instpanel,'Style','text',...
-                'HorizontalAlignment', 'Left',...
-                'Position',[5 5 30 750]);
-        % Textbox for instrument name
-        insttext2 = uicontrol('Parent',instpanel,'Style','text',...
-                'String','Empty',...
-                'HorizontalAlignment', 'Left',...
-                'Position',[35 5 75 750]);
-        % Textbox for device name to distinguish degenerate names
-        insttext3 = uicontrol('Parent',instpanel,'Style','text',...
-                'HorizontalAlignment', 'Left',...
-                'Position',[110 5 75 750]);
-        % Add instrument button [! not functional]
-        instadd = uicontrol('Parent',instpanel,'Style','pushbutton',...
-            'String','Add',...
-            'Position',[5 5 60 20],...
-            'Callback',{@instadd_Callback});       
-        % Remove instrument button [! not functional]
-        instdel = uicontrol('Parent',instpanel,'Style','pushbutton',...
-            'String','Remove',...
-            'Position',[70 5 60 20],...
-            'Callback',{@instdel_Callback});
-        % Edit instrument button [! not functional]
-        instdel = uicontrol('Parent',instpanel,'Style','pushbutton',...
-            'String','Edit',...
-            'Position',[135 5 60 20],...
-            'Callback',{@instedt_Callback});
-        % Open all instruments (smopen)
-        instopen = uicontrol('Parent',instpanel,'Style','pushbutton',...
-            'String','Open Instruments',...
-            'Position',[5 30 190 20],...
-            'Callback',{@instopen_Callback});
-        
-    %  Panel for Channels
-    channelwidths = [40 75 100 75 50 50 50 50]; %widths of each column
-    channelpanel = uipanel('Parent',ht(1),'Title','Channels',...
-        'Units','pixels',...
-        'Position',[260 50 sum(channelwidths)+5*(length(channelwidths)+2) 850]);
-        align([channelpanel instpanel],'Fixed',10,'Top');
-        channelnameheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Name',...
-            'Position',[10+sum(channelwidths(1:1)),805,channelwidths(2), 20]);
-        channelinstheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Instrument',...
-            'Position',[15+sum(channelwidths(1:2)),805,channelwidths(3), 20]);
-        channelchanheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Channel',...
-            'Position',[20+sum(channelwidths(1:3)),805,channelwidths(4), 20]);
-        channelminheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Min',...
-            'Position',[25+sum(channelwidths(1:4)),805,channelwidths(5), 20]);
-        channelmaxheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Max',...
-            'Position',[30+sum(channelwidths(1:5)),805,channelwidths(6), 20]);
-        channelrampheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Ramp',...
-            'Position',[35+sum(channelwidths(1:6)),805,channelwidths(7), 20]);
-        channelconvheader_sth = uicontrol('Parent',channelpanel,...
-            'Style','Text',...
-            'String','Multiplier',...
-            'Position',[40+sum(channelwidths(1:7)),805,channelwidths(8), 20]);
-        channeladd_pbh = uicontrol('Parent',channelpanel,...
-            'String','Add Channel',...
-            'Style','pushbutton',...
-            'Position',[5 5 80 20],...
-            'Callback',@channeladd_pbh_Callback);
-        
-        delchan_pbh = [];  % handles to delete channel pushbuttons
-        channelname_eth = []; % handles to channelname edit boxes
-        instname_pmh = []; % handles to inst name pupup menus
-        instchan_pmh = []; % ...
-        channelmin_eth = [];
-        channelmax_eth = [];
-        channelramprate_eth = [];
-        channelconv_eth = [];
-        
-    % Pushbutton to open saved rack [matlab data file]
-    openrack = uicontrol('Parent',ht(1),'Style','pushbutton','String','Open Rack',...
-        'Position',[80 850 60 20],...
-        'Callback',{@openrackpushbutton_Callback});
-    % Pushbutton to save rack [matlab data file]
-    saverack = uicontrol('Parent',ht(1),'Style','pushbutton','String','Save Rack',...
-        'Position',[160 850 60 20],...
-        'Callback',{@saverackpushbutton_Callback});
-    
-    
-    %
-    % Scans
-    %
-    
-
-    
     scan_constants_ph = [];
         update_consts_pbh = []; %pb to update all the scan constants (run smset)
-        consts_pmh = []; %1d array of popups for scan constants
-        consts_eth = []; %1d array of edits for scan constants
-
+        consts_pmh = []; %1d array of popups for scan constants (set)
+        consts_eth = []; %1d array of edits for scan constants (set)
+        setconsts_cbh=[];
     loop_panels_ph = []; % handles to panels for each loop
     loopvars_sth = []; % handles to static text for each loop (2D)
     loopvars_eth = []; % handles to edit text for each loop (2D)
@@ -146,27 +73,27 @@ function varargout = smgui(varargin)
     
 
     
-    numloops_sth = uicontrol('Parent',ht(2),'Style','text',...
+    numloops_sth = uicontrol('Parent',nullpanel,'Style','text',...
         'String','Loops:',...
         'HorizontalAlignment','right',...
         'Position',[5 640 40 15]);
-    numloops_eth = uicontrol('Parent',ht(2),'Style','edit',...
+    numloops_eth = uicontrol('Parent',nullpanel,'Style','edit',...
         'String','1',...
         'Position',[55 640 20 20],...
         'Callback',@numloops_eth_Callback);
     
-    loadscan_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
-        'String','Load Scan',...
-        'Position',[5 860 80 25],...
-        'Callback',@loadscan_pbh_Callback);
-    savescan_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
-        'String','Save Scan',...
-        'Position',[95 860 80 25],...
-        'Callback',@savescan_pbh_Callback);  
+%     loadscan_pbh = uicontrol('Parent',nullpanel,'Style','pushbutton',...
+%         'String','Load Scan',...
+%         'Position',[5 860 80 25],...
+%         'Callback',@loadscan_pbh_Callback);
+%     savescan_pbh = uicontrol('Parent',nullpanel,'Style','pushbutton',...
+%         'String','Save Scan',...
+%         'Position',[95 860 80 25],...
+%         'Callback',@savescan_pbh_Callback);  
     
 
     
-    pptpanel = uipanel('Parent',ht(2),'Title','PowerPoint Log',...
+    pptpanel = uipanel('Parent',nullpanel,'Title','PowerPoint Log',...
         'Units','pixels',...
         'Position',[3 795 174 60]);
         saveppt_pbh = uicontrol('Parent',pptpanel,'Style','pushbutton',...
@@ -185,7 +112,7 @@ function varargout = smgui(varargin)
             'HorizontalAlignment','left',...
             'FontSize',8);
         
-    datapanel = uipanel('Parent',ht(2),'Title','Data File',...
+    datapanel = uipanel('Parent',nullpanel,'Title','Data File',...
         'Units','pixels',...
         'Position',[3 700 174 88]);
         savedata_pbh = uicontrol('Parent',datapanel,'Style','pushbutton',...
@@ -229,17 +156,17 @@ function varargout = smgui(varargin)
             'Position',[90 5 80 15]);   
         
             
-    smrun_pbh = uicontrol('Parent',ht(2),'Style','pushbutton',...
+    smrun_pbh = uicontrol('Parent',nullpanel,'Style','pushbutton',...
         'String','Measure',...
         'Position',[5 670 170 25],...
         'Callback',@smrun_pbh_Callback);
     
     
-    commenttext_sth = uicontrol('Parent',ht(2),'Style','text',...
+    commenttext_sth = uicontrol('Parent',nullpanel,'Style','text',...
         'String','Comments:',...
         'HorizontalAlignment','left',...
         'Position',[5 600 170 20]);
-    commenttext_eth = uicontrol('Parent',ht(2),'Style','edit',...
+    commenttext_eth = uicontrol('Parent',nullpanel,'Style','edit',...
         'String','',...
         'FontSize',8,...
         'Position',[5 300 170 300],...
@@ -248,18 +175,18 @@ function varargout = smgui(varargin)
         'Callback',@commenttext_eth_Callback);
     
     %UI Controls for plot selection
-    oneDplot_sth = uicontrol('Parent',ht(2),'Style','text',...
+    oneDplot_sth = uicontrol('Parent',nullpanel,'Style','text',...
         'String','1D Plots',...
         'Position',[5 250 80 20]);
-    oneDplot_lbh = uicontrol('Parent',ht(2),'Style','listbox',...
+    oneDplot_lbh = uicontrol('Parent',nullpanel,'Style','listbox',...
         'String',{},...
         'Max',10,...
         'Position',[5 50 80 200],...
         'Callback',@plot_lbh_Callback);
-    twoDplot_sth = uicontrol('Parent',ht(2),'Style','text',...
+    twoDplot_sth = uicontrol('Parent',nullpanel,'Style','text',...
         'String','2D Plots',...
         'Position',[95 250 80 20]);
-    twoDplot_lbh = uicontrol('Parent',ht(2),'Style','listbox',...
+    twoDplot_lbh = uicontrol('Parent',nullpanel,'Style','listbox',...
         'String',{},...
         'Max',10,...
         'Position',[95 50 80 200],...
@@ -272,7 +199,6 @@ function varargout = smgui(varargin)
     
     mInputArgs = varargin;  % Command line arguments when invoking the GUI
     mOutputArgs = {};       % Variable for storing output when GUI returns
-    global smdata smscan smaux;
     datasavefile='';
     plotchoices.string={};
     plotchoices.loop=[];
@@ -280,11 +206,6 @@ function varargout = smgui(varargin)
     set(datapath_sth,'String',datasavefile);
     numloops = 1;
 
-    
-    if isstruct(smdata)
-        sminstrefresh;
-        smchanrefresh;
-    end
     
     if ~isstruct(smscan)
         smscan.loops(1).npoints=100;
@@ -351,12 +272,7 @@ function varargout = smgui(varargin)
         makeconstpanel;
     end
 
-    function sminstrefresh
-        [s1 s2 s3]=smprintinst2;
-        set(insttext1,'String',s1);
-        set(insttext2,'String',s2);
-        set(insttext3,'String',s3);
-    end
+
     
     % refreshes the channel panel
     function smchanrefresh
@@ -441,125 +357,6 @@ function varargout = smgui(varargin)
         end
     end
 
-    function removechannel_Callback(hObject,eventdata,i)
-        smdata.channels(i)=[];
-        smchanrefresh;
-        makeconstpanel;
-        makelooppanels;
-    end
-
-    function channeladd_pbh_Callback(hObject,eventdata)
-        if (~isstruct(smdata) || ~isfield(smdata,'inst'))
-            errordlg('Please setup instruments before adding channels','Action not allowed');
-        elseif isstruct(smdata)
-            smdata.channels(end+1).instchan=[1 1];
-            smdata.channels(end).rangeramp=[0 0 0 1];
-            smdata.channels(end).name='New';
-            smchanrefresh;
-            makeconstpanel;
-            makelooppanels;
-        else
-            smdata.channels(1).instchan=[1 1];
-            smdata.channels(1).rangeramp=[0 0 0 1];
-            smdata.channels(1).name='New';
-            smchanrefresh;
-            makeconstpanel;
-            makelooppanels;            
-        end
-    end
-
-    function edtchannelname_Callback(hObject,eventdata,i)
-        smdata.channels(i).name=get(hObject,'String');
-        makeconstpanel;
-        makelooppanels;
-    end
-
-    function instname_pmh_Callback(hObject,eventdata,i)
-        smdata.channels(i).instchan(1)=get(hObject,'Value')-1;
-        smdata.channels(i).instchan(2)=1;
-        set(instchan_pmh(i),'String',['none' cellstr(smdata.inst(smdata.channels(i).instchan(1)).channels)']);
-        set(instchan_pmh(i),'Value',1);
-    end
-
-    function instchan_pmh_Callback(hObject,eventdata,i)
-        smdata.channels(i).instchan(2)=get(hObject,'Value')-1;
-    end
-
-    function channelmin_eth_Callback(hObject,eventdata,i)
-        val = str2double(get(hObject,'String'));
-        if ~isnan(val)
-            smdata.channels(i).rangeramp(1)= val;
-            set(hObject,'String',smdata.channels(i).rangeramp(1));
-        else
-            errordlg('Please enter a real number or "inf"','Invalid Input Value');
-            set(hObject,'String',smdata.channels(i).rangeramp(1));
-        end
-    end
-
-    function channelmax_eth_Callback(hObject,eventdata,i)
-        val = str2double(get(hObject,'String'));
-        if ~isnan(val)
-            smdata.channels(i).rangeramp(2)= val;
-            set(hObject,'String',smdata.channels(i).rangeramp(2));
-        else
-            errordlg('Please enter a real number or "inf"','Invalid Input Value');
-            set(hObject,'String',smdata.channels(i).rangeramp(2));
-        end
-    end
-
-    function channelramprate_eth_Callback(hObject,eventdata,i)
-        val = str2double(get(hObject,'String'));
-        if ~isnan(val)
-            smdata.channels(i).rangeramp(3)= val;
-            set(hObject,'String',smdata.channels(i).rangeramp(3));
-        else
-            errordlg('Please enter a real number or "inf"','Invalid Input Value');
-            set(hObject,'String',smdata.channels(i).rangeramp(3));
-        end
-    end
-
-    function channelconv_eth_Callback(hObject,eventdata,i)
-        val = str2double(get(hObject,'String'));
-        if ~isnan(val)
-            smdata.channels(i).rangeramp(4)= val;
-            set(hObject,'String',smdata.channels(i).rangeramp(4));
-        else
-            errordlg('Please enter a real number or "inf"','Invalid Input Value');
-            set(hObject,'String',smdata.channels(i).rangeramp(4));
-        end
-    end
-
-    function openrackpushbutton_Callback(hObject,eventdata)
-        [smdataFile,smdataPath] = uigetfile('*.mat','Select Rack File');
-        S=load (fullfile(smdataPath,smdataFile));
-        smdata=S.smdata;
-        sminstrefresh;
-        smchanrefresh;
-        makeconstpanel;
-    end
-
-    function saverackpushbutton_Callback(hObject,eventdata)  
-        [smdataFile,smdataPath] = uiputfile('*.mat','Save Rack As');
-        save(fullfile(smdataPath,smdataFile),'smdata');
-    end
-
-    %Add a new instrument (??)
-    function instadd_Callback(hObject,eventdata)
-    end
-
-    %Delete an instrument
-    function instdel_Callback(hObject,eventdata)
-    end
-
-    %Edit an instrument
-    function instedt_Callback(hObject,eventdata)
-    end
-
-    % Open instruments
-    function instopen_Callback(hObject,eventdata)
-        smopen;
-    end
-
     %Change the number of loops in the scan
     function numloops_eth_Callback(hObject,eventdata)
         val = str2double(get(hObject,'String'));
@@ -579,21 +376,19 @@ function varargout = smgui(varargin)
 
     function makeconstpanel
         delete(scan_constants_ph);
-        scan_constants_ph = uipanel('Parent',ht(2),'Title','Constants',...
+        scan_constants_ph = uipanel('Parent',nullpanel,'Title','Constants (check to set, uncheck to record)',...
             'Units','Pixels',...
             'Position', [180 600 700 290]);
     
         update_consts_pbh = uicontrol('Parent',scan_constants_ph,...
             'Style','pushbutton',...
             'String','Update Constants',...
-            'Position',[550 10 130 30],...
+            'Position',[560 5 130 25],...
             'Callback',@update_consts_pbh_Callback);
         
         numconsts=length(smscan.consts);
-        channelnames = {};
-        for k = 1:length(smdata.channels)
-            channelnames{k}=smdata.channels(k).name;
-        end
+        channelnames = {smdata.channels.name};
+        
         
         parentsize=[180 600 700 290];
         pos1 = [5 parentsize(4)-40 0 0];
@@ -606,7 +401,7 @@ function varargout = smgui(varargin)
                   chanval=smchanlookup(smscan.consts(i).setchan)+1;
                 catch 
                     errordlg([smscan.consts(i).setchan ' is not a channel'],...
-                      'Invalid Channel in smscan');
+                      'Invalid Channel in smscan.consts');
                     chanval=1;
                 end
             end
@@ -615,14 +410,19 @@ function varargout = smgui(varargin)
                 'String',['none' channelnames],...
                 'Value',chanval,...
                 'HorizontalAlignment','center',...
-                'Position',pos1+[175*(mod(i-1,cols)) -33*(floor((i-1)/cols)) 100 20],...
+                'Position',pos1+[173*(mod(i-1,cols)) -27*(floor((i-1)/cols)) 96 20],...
                 'Callback',{@consts_pmh_Callback,i});
             consts_eth(i) = uicontrol('Parent',scan_constants_ph,...
                 'Style','edit',...
                 'String',smscan.consts(i).val,...
                 'HorizontalAlignment','center',...
-                'Position',pos1+[175*(mod(i-1,cols))+105 -33*(floor((i-1)/cols)) 50 20],...
+                'Position',pos1+[173*(mod(i-1,cols))+98 -27*(floor((i-1)/cols)) 50 20],...
                 'Callback',{@consts_eth_Callback,i});
+            setconsts_cbh(i) = uicontrol('Parent',scan_constants_ph,...
+                'Style','checkbox',...
+                'Position',pos1+[173*(mod(i-1,cols))+150 -27*(floor((i-1)/cols)) 20 20],...
+                'Value',smscan.consts(i).set,...
+                'Callback',{@setconsts_cbh_Callback,i});
         end
         if isempty(i)
             i=0;
@@ -635,14 +435,14 @@ function varargout = smgui(varargin)
             'String',['none' channelnames],...
             'Value',chanval,...
             'HorizontalAlignment','center',...
-            'Position',pos1+[175*(mod(i-1,cols)) -33*(floor((i-1)/cols)) 100 20],...
+            'Position',pos1+[173*(mod(i-1,cols)) -27*(floor((i-1)/cols)) 100 20],...
             'Callback',{@consts_pmh_Callback,i});
 
         consts_eth(i) = uicontrol('Parent',scan_constants_ph,...
             'Style','edit',...
             'String',0,...
             'HorizontalAlignment','center',...
-            'Position',pos1+[175*(mod(i-1,cols))+105 -33*(floor((i-1)/cols)) 50 20],...
+            'Position',pos1+[173*(mod(i-1,cols))+105 -27*(floor((i-1)/cols)) 50 20],...
             'Callback',{@consts_eth_Callback,i});
         
     end
@@ -660,7 +460,7 @@ function varargout = smgui(varargin)
         
 
         for i = (length(loop_panels_ph)+1):numloops % display data from existing loops
-            loop_panels_ph(i) = uipanel('Parent',ht(2),...
+            loop_panels_ph(i) = uipanel('Parent',nullpanel,...
                 'Units','pixels',...
                 'Position',panel1position+[0*(i) -200*(i) -0*(i) 0]);
         
@@ -1014,12 +814,27 @@ function varargout = smgui(varargin)
         [smscanFile,smscanPath] = uiputfile('*.mat','Save Scan As');
         save(fullfile(smscanPath,smscanFile),'smscan');
     end
-
+ 
     function loadscan_pbh_Callback(hObject,eventdata)
         [smscanFile,smscanPath] = uigetfile('*.mat','Select Scan File');
         S=load (fullfile(smscanPath,smscanFile));
         smscan=S.smscan;
         scaninit;
+    end
+
+   function openrackCallback(hObject,eventdata)
+        [smdataFile,smdataPath] = uigetfile('*.mat','Select Rack File');
+        S=load (fullfile(smdataPath,smdataFile));
+        smdata=S.smdata;
+    end
+
+    function saverackCallback(hObject,eventdata)
+        [smdataFile,smdataPath] = uiputfile('*.mat','Save Rack As');
+        save(fullfile(smdataPath,smdataFile),'smdata');
+    end
+        
+    function editrackCallback(hObject,eventdata)
+        smguichannels;
     end
 
     function loopvars_addchan_pbh_Callback(hObject,eventdata,i)
@@ -1188,13 +1003,28 @@ function varargout = smgui(varargin)
         smscan.consts(i).val=val;
     end
 
+    % Callback for constants checkboxes
+    function setconsts_cbh_Callback(hObject,eventdata,i)
+        smscan.consts(i).set = get(hObject,'Value');  
+    end
+
     %Callback for update constants pushbutton
     function update_consts_pbh_Callback(hObject,eventdata)  
+        allchans = {smscan.consts.setchan};
+        setchans = {};
+        setvals = [];
         for i=1:length(smscan.consts)
-            prolog_setchans{i}=smscan.consts(i).setchan;
-            prolog_vals(i)=smscan.consts(i).val;
+            if smscan.consts(i).set
+                setchans{end+1}=smscan.consts(i).setchan;
+                setvals(end+1)=smscan.consts(i).val;
+            end
         end
-        smset(prolog_setchans, prolog_vals);
+        smset(setchans, setvals);
+        newvals = cell2mat(smget(allchans));
+        for i=1:length(smscan.consts)
+            smscan.consts(i).val=newvals(i);
+            set(consts_eth(i),'String',newvals(i));
+        end
     end
     
     % Callback for data file location pushbutton
@@ -1324,7 +1154,7 @@ function varargout = smgui(varargin)
         end
                     
                 
-        
+      update_consts_pbh_Callback;
       smrun(smscan,datasaveFile);
         if get(appendppt_cbh,'Value')
             slide.title = [filestring '_' runstring '.mat'];
@@ -1384,7 +1214,7 @@ function varargout = smgui(varargin)
            smscan.disp(i).dim=2;
        end
     end
-    set(f,'Visible','on')
+    set(smaux.smgui,'Visible','on')
     
     
 end 

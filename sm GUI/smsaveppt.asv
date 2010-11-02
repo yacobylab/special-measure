@@ -127,20 +127,52 @@ set(pic1,'Left',single(180));
 set(pic1,'Top',single(108));
 
 
-g1=[];
+
 for i=1:length(text.consts)
-g1{i}=[text.consts(i).setchan sprintf('%s\t','=') num2str(text.consts(i).val)];
-end
-g1=sprintf('%s\n',g1{:});
-
-
-T2=cellstr(text.body);
-g2='';
-for i=1:length(T2)
-g2=[g2 T2{i} '\n'];
+    if text.consts(i).set
+        text.consts(i).setchan = ['$' text.consts(i).setchan];
+    end
 end
 
-g=sprintf('%s\n%s',g1,g2);
+if (~isempty(text.consts))&&(~isempty(text.body))
+    g1=[];
+    for i=1:length(text.consts)
+        if text.consts(i).val < 1e6
+            g1{i}=[text.consts(i).setchan sprintf('\t%s     ','=') num2str(text.consts(i).val)];
+        else
+            g1{i}=[text.consts(i).setchan sprintf('\t%s     ','=') sprintf('%.2e',text.consts(i).val)];
+        end
+    end
+    g1=sprintf('%s\n',g1{:});
+    T2=cellstr(text.body);
+    g2='';
+    for i=1:length(T2)
+    g2=[g2 T2{i} '\n'];
+    end
+    g=sprintf('%s\n%s',g1,g2);
+elseif ~isempty(text.body)
+    T2=cellstr(text.body);
+    g2='';
+    for i=1:length(T2)
+    g2=[g2 T2{i} '\n'];
+    end
+    g=sprintf('%s',g2);
+elseif ~isempty(text.consts)
+    g1=[];
+    for i=1:length(text.consts)
+        if text.consts(i).val < 1e6
+            g1{i}=[text.consts(i).setchan sprintf('\t%s\t','=') num2str(text.consts(i).val)];
+        else
+            g1{i}=[text.consts(i).setchan sprintf('\t%s\t','=') sprintf('%e4',text.consts(i).val)];
+        end
+    end
+    g1=sprintf('%s\n',g1{:});
+    g=sprintf('%s',g1);
+else
+    g='';
+end
+
+
 
 % Make a textbox for comments
 text1 = invoke(new_slide.Shapes(1),'AddTextbox',1,single(5),single(108),single(175),single(425));

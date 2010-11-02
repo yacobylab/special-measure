@@ -58,9 +58,27 @@ if ~isstruct(scan)
     scan=smscan;
 end
 
+ % handle setting up self-ramping trigger for inner loop if none is
+ % provided
+if scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
+                                    isempty(scan.loops(1).trigfn) || ...
+                                    (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
+    scan.loops(1).trigfn.fn=@smatrigfn;
+    scan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
+end
+
 % set global constants for the scan, held in field scan.consts
 if isfield(scan,'consts') && ~isempty(scan.consts)
-    smset({scan.consts.setchan}, [scan.consts.val]);
+%     smset({scan.consts.setchan}, [scan.consts.val]);
+    setchans = {};
+    setvals = [];
+    for i=1:length(scan.consts)
+        if scan.consts(i).set
+            setchans{end+1}=scan.consts(i).setchan;
+            setvals(end+1)=scan.consts(i).val;
+        end
+    end
+    smset(setchans, setvals);
 end
 
 if isfield(scan, 'configfn')
@@ -390,8 +408,6 @@ for i = 1:length(disp)
 end  
 
 x = zeros(1, nloops);
-%filename = sprintf('sm_%02d%02d%02d_%02d%02d')
-
 
 configvals = cell2mat(smget(smdata.configch));
 configch = {smdata.channels(smchanlookup(smdata.configch)).name};
