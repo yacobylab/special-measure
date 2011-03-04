@@ -76,3 +76,16 @@ Syncronized channels directory with qDots/sm/channels
 
 06/01/10 Hendrik
 - changed smset to expand ramprate if only single value given.
+
+02/08/11 Hendrik
+- Added pause feature to smrun - press space bar in data figure (typically 1000)
+- Removed one check for scan interruption from smrun, moved other one to remove 
+  redundant code.
+- Added new feature for smrun to skip all but first sample of loops that do 
+  nothing but setting ramps. Feature is enabled by negative ramptime.
+- Implemented smsaveinst and smloadinst for ease of moving instruments
+  from one rack and computer to another.
+- Implemented very symple rountines smloadchans, smsavechans to 
+  read and write all channels to/from file.
+- Wrote new smcATS660v3.m with slightly increased performance.
+

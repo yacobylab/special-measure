@@ -102,7 +102,7 @@ while i < 10
     catch
         fprintf('WARNING: error in DAC communication. Flushing buffer and repeating.\n');
         while inst.BytesAvailable > 0
-            fprintf(fscanf(inst));
+            fprintf(fscanf(inst))
         end
 
         i = i+1;

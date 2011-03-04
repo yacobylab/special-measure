@@ -40,7 +40,7 @@ Other routines, mainly used internally:
 ---------------------------------------
 smdispchan:   update display of current values)
 smchanlookup: Translation from channel name to index)
-sminstlookup: Translatino form device name to index)
+sminstlookup: Translation form device name to index)
 smchaninst:   get instrument associated with a channel)
 	
 
@@ -78,10 +78,12 @@ chandisph
 chanvals
 
 smdata.channels
-	instchan 
-	rangeramp: First two elements give range. Third element determines
-		   ramp rate (in 1/s). 4th element is the conversion factor.
-        name
+	instchan   [instrument index, channel index w.r.t. instrument's
+		   channels]
+	rangeramp: First two elements are lower and upper limit. 
+		   Third element determines ramp rate (in 1/s). 
+		   4th element is the conversion factor.
+        name	   Channel name (string).
 		   
 
 
@@ -107,14 +109,14 @@ up to the user to make sure that channels that do not support write operations
 (typically acqusition devices) are not used as set channels.
 Writeable channels should always accept and return a single double, but 
 read-only channels can also return matrices of arbitrary dimension - e.g. 
-a vector representing a complete scan lines.
+a vector representing a complete scan line.
 Writeable channels can be self ramping, in which case its variable can be 
 ramped by the corresponding instrument. If available, this feature is always 
 used to set channel values (function smset), and can also be used for 
 measurements. 
 
 Information about instruments, channels (i.e. the rack) and other 
-configuration is stored in the global struct smdata. Channels an 
+configuration is stored in the global struct smdata. Channels and 
 instruments are stored in the struct array smdata.channels and smdata.inst.
 Major changes to smdata.inst are only required when adding new instruments 
 or updating drivers, but it may occasionally be necessary to change certain
@@ -192,7 +194,7 @@ Note that some of the parameters are optional.
 
 Confguring the display
 ----------------------
-What data is displayes is defined in the disp field of the scan definition 
+What data is displayed is defined in the disp field of the scan definition 
 struct. disp is a struct array with the fields listed below. Each element
 of disp describes one subplot to be displayed in the data window (Figure 1000).
 
@@ -212,17 +214,19 @@ A writeable channel ch on instrument inst with
 smdata.inst(inst).type(ch) set to 1 is considered as a ramping
 channel, i.e. smset assumes that the device can autonomously generate
 ramps. This feature is always used to change the value of the channel.
-The maximum and default ramo rate is stored in smdatal.
-It can also be used 
+The maximum and default ramp rate is stored in smdata.
 
-In the latter case, smrun (the main measurement routine)
-only programs the endpoint of a ramp and the ramp rate
+Ramps are also be used for measurements if scan.loops(i).ramptime < 0
+In this latter case, smrun (the main measurement routine) only sets
+the channel to the initial value and programs the endpoint of a ramp
+and the ramp rate and then (optionally) 
+calls a trigger function to initiate a ramp. 
 
 
 Transformation functions:
 -------------------------
 
-Channel transformation function compute the channel value to be set
+Channel transformation functions compute the channel value to be set
 from the independent variables and other channel values.
 Their first argument is a vector with the loop variables,
 starting with the innermost loop.
@@ -242,7 +246,7 @@ is the loop variable vector.
 Writing instrument drivers
 ---------------------------
 
-Adding a new instruments consists of two parts: writing a control function
+Adding new instruments consists of two parts: writing a control function
 and specifying the instrument information in smdata.inst, a struct array 
 with the following fields:
 
@@ -276,19 +280,64 @@ determines what the function should do.
    functionality. The return value val should be the expected 
    time required to complete the ramp to the set point.
 2: query remaining ramp time. Ramp rate used to program the last ramp is
-   given in rate. This functionality is not used by smset at the time 
-   of writing.
+   given in rate. This functionality is not used by smset (or anywhere else) 
+   at the time of writing.
+3: trigger previously programmed ramp.
 
-If rate < 0 for ramped channels, the ramp is used in a measurement. In this
+If rate < 0 for ramped channels, a ramp is used in a measurement. In this
 case, the ramp should only be programmed and started later by a separate
 trigger function (see "Ramping channels").
 
 How instruments are stored and addressed by the control function 
 is in principle arbitrary. However, I would recommend to follow the 
-convention that GPIB, serial VISA, and similar instruments (i.e. those
+convention that GPIB, serial, VISA, and similar instruments (i.e. those
 controlled via the instrument control toolbox) be represented 
 by an instrument object stored in in smdata.inst().data.inst, which is
 always kept open. smopen, smclose, smprintf, smscanf and smquery only 
 work for instruments following this convention.
+
+For simple examples that can be adapted see for example smcHP1000A.m
+or smctemplate.m, which is intended to be a starting point for writing new 
+drivers. 
+
+
+Pseudocode for smrun:
+---------------------
+
+Set constant channels
+
+Call configfn
+
+Main loop
+     for loops needing update (outer first)
+     	 Set values and/or program ramps
+	 call prefn
+	 wait
+	 trigger ramped channels if needed
+     end
+
+     for loops needing readout (inner first)
+     	 read data
+	 apply procfn
+	 display data
+	 save data if needed
+	 call postfn
+	 call datafn
+     end
+end
+
+save data.
+
+
+Specifying user functions in scan
+---------------------------------
+Functions lists to be exectuted at various points
+(prefn, postfn, datafn, procfn, trigfn) can be specified as 
+cell arrays of function handles or struct arrays with fields fn
+(function handle) and args (cell array with user arguments to be passed).
+For more details, see auxiliary function fncall at the end of smrun.m.
+
+
+
 
 
