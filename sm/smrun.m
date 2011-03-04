@@ -69,7 +69,11 @@ end
 
 % set global constants for the scan, held in field scan.consts
 if isfield(scan,'consts') && ~isempty(scan.consts)
-%     smset({scan.consts.setchan}, [scan.consts.val]);
+    if ~isfield(scan.consts,'set')
+        for i=1:length(scan.consts)
+            scan.consts(i).set =1;
+        end
+    end
     setchans = {};
     setvals = [];
     for i=1:length(scan.consts)
@@ -112,6 +116,13 @@ for i=1:length(scandef)
             A = (setchanranges(2)-setchanranges(1))/(scandef(i).rng(end)-scandef(i).rng(1));
             B = (setchanranges(1)*scandef(i).rng(end)-setchanranges(2)*scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1));
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
+        end
+    end
+    %if trafofns aren't defined for all setchannels, use trafofn{1} for the
+    %undefined channels
+    if length(scandef(i).setchan)>length(scandef(i).trafofn)
+        for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
+            scandef(i).trafofn{j}=scandef(i).trafofn{1};
         end
     end
 end

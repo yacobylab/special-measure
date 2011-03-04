@@ -338,8 +338,4 @@ movegui(smaux.smguichannels,'center')
         smchanrefresh;
     end
 
-
-
-    
-    
 end 

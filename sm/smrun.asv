@@ -31,7 +31,8 @@ function data = smrun(scan, filename)
 %           Ramptime can be a vector with an entry for each setchannel or
 %           a single number for all channels. 
 %   setchan
-%   trafofn (cell array of function handles. Default: independent variable of this loop)
+%   trafofn (cell array of function handles. Default: independent variable
+%   of this loop)
 %   getchan
 %   prefn (struct array with fields fn, args. Default empty)
 %   postfn (default empty, currently a cell array of function handles)
@@ -69,8 +70,11 @@ end
 
 % set global constants for the scan, held in field scan.consts
 if isfield(scan,'consts') && ~isempty(scan.consts)
-%     smset({scan.consts.setchan}, [scan.consts.val]);
-    allchans = {scan.consts.setchan};
+    if ~isfield(scan.consts,'set')
+        for i=1:length(scan.consts)
+            scan.consts(i).set =1;
+        end
+    end
     setchans = {};
     setvals = [];
     for i=1:length(scan.consts)
@@ -80,11 +84,6 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
         end
     end
     smset(setchans, setvals);
-    newvals = cell2mat(smget(allchans));
-    for i=1:length(scan.consts)
-        scan.consts(i).val=newvals(i);
-        set(consts_eth(i),'String',newvals(i));
-    end
 end
 
 if isfield(scan, 'configfn')

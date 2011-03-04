@@ -2,7 +2,7 @@ function smnotify(varargin)
 % smnotify(subject,message) or smnotify(subject,message,filename)
 %   notifies all users with the notifyon tag set to 1
 % smnotify(subject,message,filename,user1,user2,...)
-%   notifies user1, user2, ... as long as long as notifyon == 1
+%   notifies user1, user2, ... 
 %
 % notification tool for special measure.  a global variable named smaux
 % must exist, with the following user structure:
@@ -17,15 +17,26 @@ function smnotify(varargin)
 %
 
 global smaux;
-if nargin==2
+if nargin<=2
+    if nargin<2
+        body='';
+        if nargin==0
+            subject='Runs Complete. Check Experiment.';
+        else
+            subject=varargin{1};
+        end
+    else
+        body=varargin{2};
+        subject=varargin{1};
+    end
     for i=1:length(smaux.users)
         if smaux.users(i).notifyon
             for j=1:length(smaux.users(i).notify)
                 switch smaux.users(i).notify{j}
                     case 'email'
-                        sendmail(smaux.users(i).email,varargin{1},varargin{2},[]);
+                        sendmail(smaux.users(i).email,subject,body,[]);
                     case 'sms'
-                        send_text_message(smaux.users(i).cell,smaux.users(i).carrier,varargin{1},varargin{2});
+                        send_text_message(smaux.users(i).cell,smaux.users(i).carrier,subject,body);
                 end
             end
         end
