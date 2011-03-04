@@ -1,8 +1,10 @@
 function [val, rate] = smcATS660v2(ico, val, rate, varargin)
 % val = smcATS660v2(ico, val, rate, varargin)
-% ico(2) == 3 sets/gets  HW sample rate.
+% ico(3) == 3 sets/gets  HW sample rate.
+% ico(3) = 4 arm
 % ico(3) = 5 configures. val = record length,
-% 4th argument specified number of readout operations per trigger (can be inf)
+% ico(3) = 6 sets mask.
+% 4th argument specifies number of readout operations per trigger (can be inf)
 global smdata;
 
     
@@ -18,11 +20,15 @@ switch ico(3)
 
                 s.type = '()';
                 if isfield(smdata.inst(ico(1)).data, 'mask') && ~isempty(smdata.inst(ico(1)).data.mask)
-                    s.subs = {smdata.inst(ico(1)).data.mask, ':'};
+                    if size(smdata.inst(ico(1)).data.mask,1) > ico(2)
+                      s.subs = {smdata.inst(ico(1)).data.mask(ico(2),:), ':'};
+                    else
+                      s.subs = {smdata.inst(ico(1)).data.mask, ':'};
+                    end
                 else
                     s.subs = {':', ':'};
                 end
-                buf = libpointer('uint16Ptr', uint16(zeros(nsamp*downsamp+16, 1)));
+                buf = libpointer('uint16Ptr', zeros(nsamp*downsamp+16, 1, 'uint16'));
                 if nrec(1) == 0
                     while calllib('ATSApi', 'AlazarBusy', smdata.inst(ico(1)).data.handle); end
 
@@ -32,7 +38,7 @@ switch ico(3)
                         (mean(subsref(reshape(buf.value(1:downsamp*nsamp), downsamp, nsamp), s), 1)./2^15-1)';
                 else
                     val = zeros(nsamp*nrec, 1);
-                    for i = 0:nrec-1
+                    for i = 0:nrec-1 % read # records/readout
                         daqfn('WaitNextAsyncBufferComplete', smdata.inst(ico(1)).data.handle, buf, 2*nsamp*downsamp+32, ...
                             ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate));
                         %val(i*nsamp+(1:nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
@@ -63,7 +69,7 @@ switch ico(3)
             
             nsamp = smdata.inst(ico(1)).datadim(ico(2), 1) * smdata.inst(ico(1)).data.downsamp/nrec(1);
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
-                nsamp, 1, nrec(min(2, end))+1, 256+1024+32);
+                nsamp, 1, nrec(min(2, end))+1, 256+1024+32);% uses total # recors
         end
         
     case 5
@@ -121,13 +127,16 @@ switch ico(3)
         smdata.inst(ico(1)).data.nrec = nrec;
         if nargin >= 4
             if ~isfinite(varargin{1})
-                smdata.inst(ico(1)).data.nrec(2) = hex2dec('7fffffff');
+                smdata.inst(ico(1)).data.nrec(2) = hex2dec('7fffffff'); %infinite
             else
-                smdata.inst(ico(1)).data.nrec(2) = nrec*varargin{1};
+                smdata.inst(ico(1)).data.nrec(2) = nrec*varargin{1}; % total #records
             end
         end
 
         % set other parameters (highZ, rng, ...). Samplerate would need to be set further up.
+    case 6
+        smdata.inst(ico(1)).data.mask = val;
+        
     otherwise
         error('Operation not supported.');
 end
