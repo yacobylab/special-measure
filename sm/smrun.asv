@@ -222,9 +222,14 @@ for i = 1:nloops
        [scandef(i).trafofn{1:nsetchan(i)}] = deal(@(x, y) x(i));
     else
         for j = 1:nsetchan(i)
-            if isempty(scandef(i).trafofn{j})
-                scandef(i).trafofn{j} = @(x, y) x(i);
-            end
+            if iscell(scandef(i).trafofn)
+                if isempty(scandef(i).trafofn{j})
+                    scandef(i).trafofn{j} = @(x, y) x(i);
+                end
+            elseif isempty(scandef(i).trafofn(j).fn)
+                scandef(i).trafofn(j).fn = @(x, y) x(i);
+                scandef(i).trafofn(j).args = {};
+            end                
         end
     end
 end
@@ -411,11 +416,21 @@ tic;
 
 count = ones(size(npoints)); % will cause all loops to be updated.
 
+% find loops that do nothing other than starting a ramp and have skipping enabled (waittime < 0)
+isdummy = false(1, nloops);
+for i = 1:nloops
+    isdummy(i) = isfield(scandef(i), 'waittime') && ~isempty(scandef(i).waittime) && scandef(i).waittime < 0 ...
+        && all(scandef(i).ramptime < 0) && isempty(scandef(i).getchan) ...
+        &&  (~isfield(scandef(i), 'prefn') || isempty(scandef(i).prefn)) ...
+        && (~isfield(scandef(i), 'postfn') || isempty(scandef(i).postfn)) ...
+        && ~any(scan.saveloop(1) == j) && ~any([disp.loop] == j);
+end
+
 loops = 1:nloops; % indices of loops to be updated. 1 = fastest loop
 for i = 1:totpoints    
     % update a loop if all faster loops are at first val
     if i > 1;
-        loops = 1:find(count > 1, 1);
+        loops = 1:find(count > 1, 1);        
     end       
     
     for j = loops
@@ -424,11 +439,11 @@ for i = 1:totpoints
 
     xt = x;  
     for k = 1:length(scan.trafofn)
-        xt = scan.trafofn{k}(xt);
+        xt = trafocall(scan.trafofn(k), xt);
     end
 
-    for j = fliplr(loops)
-        
+    for j = fliplr(loops(~isdummy(loops) | count(loops)==1))
+        % exclude dummy loops with nonzero count
         val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);
         
         autochan = scandef(j).ramptime < 0;
@@ -449,7 +464,7 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
-                    x2 = scan.trafofn{k}(x2);
+                    x2 = trafocall(scan.trafofn(k), x2);
                 end
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
@@ -474,7 +489,8 @@ for i = 1:totpoints
             fncall(scandef(j).prefn, xt);
         end              
 
-        pause((tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime)));
+        tp=(tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime));        
+        pause(tp);  % Pause always waits 10ms
         
         % if the field 'waittime' was in scan.loops(j), then wait that
         % amount of time now
@@ -487,20 +503,6 @@ for i = 1:totpoints
             fncall(scandef(j).trigfn);
         end
 
-        if get(figurenumber, 'CurrentCharacter') == char(27)            
-            if isfield(scan, 'cleanupfn')
-                for k = 1:length(scan.cleanupfn)
-                    scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
-                end
-            end
-
-            if nargin >= 2
-                save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
-            end
-            set(figurenumber, 'CurrentCharacter', char(0));
-            set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
-            return;
-        end
 
     end
     % read loops if all subsequent loops are at max count, outer loops last
@@ -508,7 +510,7 @@ for i = 1:totpoints
     if isempty(loops)
         loops = 1:nloops;
     end
-    for j = loops
+    for j = loops(~isdummy(loops))
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
         
@@ -525,7 +527,11 @@ for i = 1:totpoints
                 end
             else
                 for fn = scandef(j).procfn(k).fn
-                    [newdata{fn.outchan}] = fn.fn(newdata{fn.inchan}, fn.args{:});
+                    if isempty(fn.fn)
+                        newdata(fn.outchan) = newdata(fn.inchan); % only permute channels
+                    else
+                        [newdata{fn.outchan}] = fn.fn(newdata{fn.inchan}, fn.args{:});
+                    end
                 end
                 s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
                 if isempty(fn)
@@ -573,27 +579,33 @@ for i = 1:totpoints
             fncall(scandef(j).datafn, xt, data);
         end
 
-        if get(figurenumber, 'CurrentCharacter') == char(27)
-            if isfield(scan, 'cleanupfn')
-                for k = 1:length(scan.cleanupfn)
-                    scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
-                end
-            end
-
-            if nargin >= 2
-                save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
-            end
-            set(figurenumber, 'CurrentCharacter', char(0));
-            set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
-            return;
-        end
-    
+        
         %fprintf('Start %.3f  Set %.3f  Read: %.3f  Proc: %.3f\n', [t(1), diff(t)]);
     end
     %update counters
     count(loops(1:end-1)) = 1;
     count(loops(end)) =  count(loops(end)) + 1;
 
+    if get(figurenumber, 'CurrentCharacter') == char(27)
+        if isfield(scan, 'cleanupfn')
+            for k = 1:length(scan.cleanupfn)
+                scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
+            end
+        end
+        
+        if nargin >= 2
+            save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
+        end
+        set(figurenumber, 'CurrentCharacter', char(0));
+        set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
+        return;
+    end
+        
+    if get(figurenumber, 'CurrentCharacter') == ' '
+        set(figurenumber, 'CurrentCharacter', char(0));
+        fprintf('Measurement paused. Type ''return'' to continue.\n')
+        evalin('base', 'keyboard');                
+    end
 end
 
 if isfield(scan, 'cleanupfn')
@@ -620,17 +632,15 @@ else
 end
 end
 
-function v = trafocall(fn, x, y)   
+function v = trafocall(fn, varargin)   
 v = zeros(1, length(fn));
 if iscell(fn)
     for i = 1:length(fn)
-        if isempty(fn{i})
-            v(i)
-            v(i) = fn{i}(x, y);
+        v(i) = fn{i}(varargin{:});
     end
 else
     for i = 1:length(fn)
-        v(i) = fn(i).fn(x, y, fn(i).args{:});
+        v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
 end
 end

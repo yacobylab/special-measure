@@ -283,6 +283,9 @@ determines what the function should do.
    given in rate. This functionality is not used by smset (or anywhere else) 
    at the time of writing.
 3: trigger previously programmed ramp.
+4: Arm acquisition device (optional)
+5: Configure acquisition device (optional)
+   See smcATS660v2.m for examples on usage of 4 and 5.
 
 If rate < 0 for ramped channels, a ramp is used in a measurement. In this
 case, the ramp should only be programmed and started later by a separate

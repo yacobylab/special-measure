@@ -8,6 +8,10 @@ function data = smget(channels)
 
 global smdata;
 
+if(isempty(channels))
+    data={};
+    return
+end
 if ~isnumeric(channels)
     channels = smchanlookup(channels);
 end
