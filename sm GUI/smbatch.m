@@ -21,7 +21,26 @@ for i=1:length(scans)
         runstring=sprintf('%03u',smaux.run);
         datasaveFile = fullfile(smaux.datadir,[fn '_' runstring '.mat']);
     end
+    
+    % set constants
+    allchans = {scans{i}.consts.setchan};
+        setchans = {};
+        setvals = [];
+        for j=1:length(scans{i}.consts)
+            if scans{i}.consts(j).set
+                setchans{end+1}=scans{i}.consts(j).setchan;
+                setvals(end+1)=scans{i}.consts(j).val;
+            end
+        end
+        smset(setchans, setvals);
+        newvals = cell2mat(smget(allchans));
+        for j=1:length(scans{i}.consts)
+            scans{i}.consts(j).val=newvals(j);
+        end
+    
     smrun(scans{i},datasaveFile);
+    
+    
     
     slide.title = [fn '_' runstring '.mat'];
     slide.body = scans{i}.comments;
