@@ -31,8 +31,7 @@ function data = smrun(scan, filename)
 %           Ramptime can be a vector with an entry for each setchannel or
 %           a single number for all channels. 
 %   setchan
-%   trafofn (cell array of function handles. Default: independent variable
-%   of this loop)
+%   trafofn (cell array of function handles. Default: independent variable of this loop)
 %   getchan
 %   prefn (struct array with fields fn, args. Default empty)
 %   postfn (default empty, currently a cell array of function handles)
@@ -119,6 +118,18 @@ for i=1:length(scandef)
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
+% This code is bad for several reasons:
+% - identity trafofn's (= []) would be a much better default, since otherwise one might end
+% up using a nontrivial transformation for all channels.
+% - trafofn's or setchans may not exist -> error
+% - it is actually be meaningful to have missing trafofns, for example if
+%   a single trafofn takes care of all channels. 
+%   If this kind of default is needed, there needs to be a different way to specify a "do nothing" function.
+%     if length(scandef(i).setchan)>length(scandef(i).trafofn)
+%         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
+%             scandef(i).trafofn{j}=scandef(i).trafofn{1};
+%         end
+%     end
 end
 
 

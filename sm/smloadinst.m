@@ -18,7 +18,11 @@ global smdata;
 % for i = 1:length(files)
 
 if nargin < 2 || isempty(ind)
-    ind = length(smdata.inst)+1;
+    if isfield(smdata, 'inst')
+        ind = length(smdata.inst)+1;
+    else
+        ind = 1;
+    end
 end
 
 if isempty(strfind(file, 'sminst'))
