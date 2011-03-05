@@ -33,7 +33,11 @@ if isempty(channel)
 end
 
 if nargin < 5
-    pos = length(smdata.channels)+1;
+    if isfield(smdata, 'channels')
+        pos = length(smdata.channels)+1;
+    else
+        pos = 1;
+    end
 end
 smdata.channels(pos).name = name;
 smdata.channels(pos).instchan = [inst, channel];

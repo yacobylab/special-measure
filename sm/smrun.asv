@@ -118,21 +118,19 @@ for i=1:length(scandef)
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
-    %if trafofns aren't defined for all setchannels, use trafofn{1} for the
-    %undefined channels
-    if isfield(scandef(i),'trafofn')
-      if length(scandef(i).setchan)>length(scandef(i).trafofn)
-        for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
-            if(iscell(scandef(i).trafofn{1}))
-              scandef(i).trafofn{j}=scandef(i).trafofn{1};
-            else
-              scandef(i).trafofn{j}=scandef(i).trafofn(1);
-            end
-        end
-      end
-    end
+    if isfield(scandef(i),'trafofn') && ~isempty(scandef(i).trafofn);
+         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
+             %scandef(i).trafofn{j}=scandef(i).trafofn{1};
+             scandef(i).trafofn{j} = [];
+             - identity trafofn's (= []) would be a much better default, since otherwise one might end
+% 
+         end
+     end
 end
-
+% The above handling of trafofns has several disadvantages:
+% - it is actually be meaningful to have missing trafofns, for example if
+% - there migh be problems due to two possible trafofn formats (with and without arguments)
+%   If this kind of default is needed, there needs to be a different way to specify a "do nothing" function.
 
 
 if ~isfield(scandef, 'npoints')
