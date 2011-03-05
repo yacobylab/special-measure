@@ -21,6 +21,26 @@ for i=1:length(scans)
     end
     smrun(scans{i},datasaveFile);
     
+    allchans = {smscan.consts.setchan};
+        setchans = {};
+        setvals = [];
+        for i=1:length(smscan.consts)
+            if smscan.consts(i).set
+                setchans{end+1}=smscan.consts(i).setchan;
+                setvals(end+1)=smscan.consts(i).val;
+            end
+        end
+        smset(setchans, setvals);
+        newvals = cell2mat(smget(allchans));
+        for i=1:length(smscan.consts)
+            smscan.consts(i).val=newvals(i);
+            if abs(floor(log10(newvals(i))))>3
+                set(consts_eth(i),'String',sprintf('%0.1e',newvals(i)));
+            else
+                set(consts_eth(i),'String',round(1000*newvals(i))/1000);
+            end
+        end
+    
     slide.title = [fn '_' runstring '.mat'];
     slide.body = scans{i}.comments;
     slide.consts=scans{i}.consts;
