@@ -31,8 +31,7 @@ function data = smrun(scan, filename)
 %           Ramptime can be a vector with an entry for each setchannel or
 %           a single number for all channels. 
 %   setchan
-%   trafofn (cell array of function handles. Default: independent variable
-%   of this loop)
+%   trafofn (cell array of function handles. Default: independent variable of this loop)
 %   getchan
 %   prefn (struct array with fields fn, args. Default empty)
 %   postfn (default empty, currently a cell array of function handles)
@@ -61,7 +60,7 @@ end
 
  % handle setting up self-ramping trigger for inner loop if none is
  % provided
-if scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
+if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
@@ -118,6 +117,19 @@ for i=1:length(scandef)
             B = (setchanranges(1)*scandef(i).rng(end)-setchanranges(2)*scandef(i).rng(1))/(scandef(i).rng(end)-scandef(i).rng(1));
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
+    end
+    %if trafofns aren't defined for all setchannels, use trafofn{1} for the
+    %undefined channels
+    if isfield(scandef(i),'trafofn')
+      if length(scandef(i).setchan)>length(scandef(i).trafofn)
+        for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
+            if(iscell(scandef(i).trafofn{1}))
+              scandef(i).trafofn{j}=scandef(i).trafofn{1};
+            else
+              scandef(i).trafofn{j}=scandef(i).trafofn(1);
+            end
+        end
+      end
     end
 end
 

@@ -60,7 +60,7 @@ end
 
  % handle setting up self-ramping trigger for inner loop if none is
  % provided
-if scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
+if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
@@ -120,10 +120,12 @@ for i=1:length(scandef)
     end
     %if trafofns aren't defined for all setchannels, use trafofn{1} for the
     %undefined channels
-    if length(scandef(i).setchan)>length(scandef(i).trafofn)
+    if isfield(scandef(i),'trafofn') && ~isempty(scandef(i).trafofn);
+      if length(scandef(i).setchan)>length(scandef(i).trafofn)
         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
-            scandef(i).trafofn{j}=scandef(i).trafofn{1};
+          scandef(i).trafofn{j}=scandef(i).trafofn{1};
         end
+      end
     end
 end
 
