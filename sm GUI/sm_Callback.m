@@ -395,7 +395,14 @@ function UpdateToGUI
     
     %populates queue list box
     qnames = {};
+    
     queue_index=get(smaux.sm.queue_lbh,'Value');
+    if isempty(queue_index) && ~isempty(get(smaux.sm.queue_lbh,'String'))
+        queue_index = 1;
+        set(smaux.sm.queue_lbh,'Value',queue_index);
+    end
+    queue_index=get(smaux.sm.queue_lbh,'Value');
+    
     if isfield(smaux,'smq') && iscell(smaux.smq)
         for i=1:length(smaux.smq)
             if isfield(smaux.smq{i},'name')
