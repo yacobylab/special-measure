@@ -1,5 +1,0 @@
-function val = smalintrafo(x, xcoeff, xref, fixch, fixcoeff, fixreff)
-
-global smdata;
-
-val = (x-xref) * xcoeff + (smdata.chanvals - fixref) * fi
