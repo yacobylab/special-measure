@@ -50,3 +50,5 @@ if ~isempty(constructor)
     end
 end
 smdata.inst(ind) = inst;
+
+smcheckdata;
