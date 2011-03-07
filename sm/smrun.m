@@ -657,11 +657,17 @@ end
 function fncall(fns, varargin)   
 if iscell(fns)
     for i = 1:length(fns)
+        if ischar(fns{i})
+          fns{i} = str2func(fns{i});
+        end
         fns{i}(varargin{:});
     end
 else
     for i = 1:length(fns)
-        fns(i).fn(varargin{:}, fns(i).args{:});
+        if ischar(fns(i).fn)
+          fns(i).fn = str2func(fns(i).fn);
+        end
+        fns(i).fn(varargin{:}, fns(i).args{:});        
     end
 end
 end
@@ -670,10 +676,16 @@ function v = trafocall(fn, varargin)
 v = zeros(1, length(fn));
 if iscell(fn)
     for i = 1:length(fn)
+        if ischar(fn{i})
+          fn{i} = str2func(fn{i});
+        end
         v(i) = fn{i}(varargin{:});
     end
 else
     for i = 1:length(fn)
+        if ischar(fn(i).fn)
+          fn(i).fn = str2func(fn(i).fn);
+        end
         v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
 end
