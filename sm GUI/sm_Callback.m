@@ -161,7 +161,7 @@ function ScansKey(eventdata)
                 temp=smaux.scans{queue_index-1};
                 smaux.scans{queue_index-1}=smaux.scans{queue_index};
                 smaux.scans{queue_index}=temp;
-                set(smaux.sm.queue_lbh,'Value',queue_index-1);
+                set(smaux.sm.scans_lbh,'Value',queue_index-1);
             end
         case 'downarrow'
             if ~isempty(mod)
@@ -176,7 +176,7 @@ function ScansKey(eventdata)
                 temp=smaux.scans{queue_index+1};
                 smaux.scans{queue_index+1}=smaux.scans{queue_index};
                 smaux.scans{queue_index}=temp;
-                set(smaux.sm.queue_lbh,'Value',queue_index+1);
+                set(smaux.sm.scans_lbh,'Value',queue_index+1);
             end
     end
     UpdateToGUI;
@@ -336,7 +336,8 @@ function Run
                 runstring=sprintf('%03u',smaux.run);
                 datasaveFile = fullfile(smaux.datadir,[scan.name '_' runstring '.mat']);
             end
-
+            
+            scan = UpdateConstants(scan);
             smrun(scan,datasaveFile);
             
             %save to powerpoint
@@ -370,6 +371,30 @@ function Eval
     set(smaux.sm.console_eth,'String','');
     for i=1:size(string,1)
         evalin('base',string(i,:));
+    end
+end
+
+function scan = UpdateConstants(scan)
+    global smaux smscan;
+
+    if nargin==0
+        scan = smscan;
+    end
+    
+    
+    allchans = {scan.consts.setchan};
+    setchans = {};
+    setvals = [];
+    for i=1:length(scan.consts)
+        if scan.consts(i).set
+            setchans{end+1}=scan.consts(i).setchan;
+            setvals(end+1)=scan.consts(i).val;
+        end
+    end
+    smset(setchans, setvals);
+    newvals = cell2mat(smget(allchans));
+    for i=1:length(scan.consts)
+        scan.consts(i).val=newvals(i);
     end
 end
 

@@ -451,7 +451,7 @@ end
 
 %Callback for update constants pushbutton
 function UpdateConstants(varargin)
-global smaux smscan;
+    global smaux smscan;
     allchans = {smscan.consts.setchan};
     setchans = {};
     setvals = [];
@@ -522,7 +522,7 @@ global smaux smscan;
             if ~isnan(rundouble)
                 runint=uint16(rundouble);
                 smaux.run=runint;
-                set(runnumber_eth,'String',smaux.run);
+                set(smaux.smgui.runnumber_eth,'String',smaux.run);
                 savedataFile=savedataFile(1:separators(end)-1); %crop off runstring
             end
         end
@@ -569,19 +569,32 @@ end
 %callback for plot list box objects
 function Plot(varargin)
     global smaux smscan;
-       vals1d = get(smaux.smgui.oneDplot_lbh,'Val');
-       vals2d = get(smaux.smgui.twoDplot_lbh,'Val');
-       smscan.disp=[];
-       for i = 1:length(vals1d)
-           smscan.disp(i).loop=plotchoices.loop(vals1d(i));
-           smscan.disp(i).channel=vals1d(i);
-           smscan.disp(i).dim=1;
-       end
-       for i = (length(vals1d)+1):(length(vals1d)+length(vals2d))
-           smscan.disp(i).loop=plotchoices.loop(vals2d(i-length(vals1d)))+1;
-           smscan.disp(i).channel=vals2d(i-length(vals1d));
-           smscan.disp(i).dim=2;
-       end
+    
+    allgetchans={smscan.loops.getchan};
+    plotchoices.string={};
+    plotchoices.loop=[];
+    for i=1:length(allgetchans)
+        for j=1:length(allgetchans{i})
+            plotchoices.string={plotchoices.string{:} allgetchans{i}{j}};
+            plotchoices.loop=[plotchoices.loop i];
+        end
+    end
+    
+    vals1d = get(smaux.smgui.oneDplot_lbh,'Val');
+    vals2d = get(smaux.smgui.twoDplot_lbh,'Val');
+    smscan.disp=[];
+    for i = 1:length(vals1d)
+       smscan.disp(i).loop=plotchoices.loop(vals1d(i));
+       smscan.disp(i).channel=vals1d(i);
+       smscan.disp(i).dim=1;
+    end
+    for i = (length(vals1d)+1):(length(vals1d)+length(vals2d))
+       smscan.disp(i).loop=plotchoices.loop(vals2d(i-length(vals1d)))+1;
+       smscan.disp(i).channel=vals2d(i-length(vals1d));
+       smscan.disp(i).dim=2;
+    end
+    
+    setplotchoices;
 end
 
 %populates plot choices
@@ -623,7 +636,7 @@ function Run(varargin)
         runstring = get(smaux.smgui.runnumber_eth,'String');
         if isempty(pathstring) || isempty(filestring)
             FileName;
-            filestring = get(filename_eth,'String');
+            filestring = get(smaux.smgui.filename_eth,'String');
             if isempty(runstring)
                 datasaveFile = fullfile(smaux.datadir,[filestring '.mat']);
             else
