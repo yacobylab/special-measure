@@ -236,14 +236,25 @@ for i = 1:nloops
         end
             
         if ~isfield(scandef(i).procfn(j).fn, 'inchan')
-            for k = 1:length(scandef(i).procfn(j).fn)
+            for k = 1:length(scandef(i).procfn(j).fn)                
                 scandef(i).procfn(j).fn(k).inchan = j;
             end
         end
-       
-        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan')
+               
+        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan') 
             [scandef(i).procfn(j).fn.outchan] = deal(scandef(i).procfn(j).fn.inchan);
         end
+        
+        if ~isempty(scandef(i).procfn(j).fn)
+          for k = 1:length(scandef(i).procfn(j).fn)
+              if isempty(scandef(i).procfn(j).fn(k).inchan)
+                  scandef(i).procfn(j).fn(k).inchan = j;
+              end
+              if isempty(scandef(i).procfn(j).fn(k).outchan)
+                  scandef(i).procfn(j).fn(k).outchan = scandef(i).procfn(j).fn(k).inchan;
+              end
+          end
+        end       
     end
         
     if isempty(scandef(i).ramptime)
