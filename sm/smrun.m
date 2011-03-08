@@ -559,6 +559,10 @@ for i = 1:totpoints
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
         
+        if isfield(scandef, 'postfn')
+            fncall(scandef(j).postfn, xt);
+        end
+
         ind = sum(ngetchan(1:j-1));
         for k = 1:length(scandef(j).procfn) 
             
@@ -616,10 +620,6 @@ for i = 1:totpoints
             save(filename, '-append', 'data');
         end
                
-        if isfield(scandef, 'postfn')
-            fncall(scandef(j).postfn, xt);
-        end
-
         if isfield(scandef, 'datafn')
             fncall(scandef(j).datafn, xt, data);
         end
