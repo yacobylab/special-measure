@@ -1,5 +1,0 @@
-function smatrigAWG(inst)
-
-global smdata;
-
-fprintf(smdata.inst(inst).data.inst, 'SOUR1:MARK1:VOLT:HIGH (?)

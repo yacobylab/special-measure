@@ -49,6 +49,22 @@ function data = smrun(scan, filename)
 %           previously recorded data. Further documentation will be provided when needed...
 %   trigfn: executed only after programming ramps for autochannels.
 
+% Copyright 2011 Hendrik Bluhm, Vivek Venkatachalam
+% This file is part of Special Measure.
+% 
+%     Special Measure is free software: you can redistribute it and/or modify
+%     it under the terms of the GNU General Public License as published by
+%     the Free Software Foundation, either version 3 of the License, or
+%     (at your option) any later version.
+% 
+%     Special Measure is distributed in the hope that it will be useful,
+%     but WITHOUT ANY WARRANTY; without even the implied warranty of
+%     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%     GNU General Public License for more details.
+% 
+%     You should have received a copy of the GNU General Public License
+%     along with Special Measure.  If not, see <http://www.gnu.org/licenses/>.
+
 global smdata;
 global smscan;
 
@@ -118,21 +134,7 @@ for i=1:length(scandef)
             scandef(i).trafofn{j}=@(x, y) A*x(i)+B;
         end
     end
-    if 0 && isfield(scandef(i),'trafofn') && ~isempty(scandef(i).trafofn);
-         for j=length(scandef(i).trafofn)+1:length(scandef(i).setchan)
-             %scandef(i).trafofn{j}=scandef(i).trafofn{1};
-             scandef(i).trafofn{j} = []; % cell array mau not always work
-             % identity trafofn's (= []) are a much better default, since otherwise one might 
-             % end up with nontricvial functions. 
-         end
-     end
 end
-% The intended default of trafofns brings two further issues:
-% - there migh be problems due to two possible trafofn formats (with and without arguments)
-% - it is actually be meaningful to have missing trafofns, for example if
-%   the first one deals with all channels and no further operations are needed.
-%   If this kind of default is needed, there needs to be a different way to specify a "do nothing" function.
-% I've thus tentatively disabled the change.
 
 if ~isfield(scandef, 'npoints')
     [scandef.npoints] = deal([]);
@@ -655,11 +657,17 @@ end
 function fncall(fns, varargin)   
 if iscell(fns)
     for i = 1:length(fns)
+        if ischar(fns{i})
+          fns{i} = str2func(fns{i});
+        end
         fns{i}(varargin{:});
     end
 else
     for i = 1:length(fns)
-        fns(i).fn(varargin{:}, fns(i).args{:});
+        if ischar(fns(i).fn)
+          fns(i).fn = str2func(fns(i).fn);
+        end
+        fns(i).fn(varargin{:}, fns(i).args{:});        
     end
 end
 end
@@ -668,10 +676,16 @@ function v = trafocall(fn, varargin)
 v = zeros(1, length(fn));
 if iscell(fn)
     for i = 1:length(fn)
+        if ischar(fn{i})
+          fn{i} = str2func(fn{i});
+        end
         v(i) = fn{i}(varargin{:});
     end
 else
     for i = 1:length(fn)
+        if ischar(fn(i).fn)
+          fn(i).fn = str2func(fn(i).fn);
+        end
         v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
     end
 end
