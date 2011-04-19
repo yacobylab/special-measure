@@ -45,7 +45,7 @@ switch ico(3)
                     buf = libpointer('uint16Ptr', zeros(nsamp*downsamp, 1, 'uint16'));                    
                     for i = 0:nrec-1 % read # records/readout
                         daqfn('WaitNextAsyncBufferComplete', smdata.inst(ico(1)).data.handle, buf, 2*nsamp*downsamp+32, ...
-                            ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate)+.3);
+                            ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate)+300);
                         if ~isempty(s.subs{1})
                             val(i*nsamp+(1:nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
                                 (mean(subsref(reshape(buf.value, downsamp, nsamp), s), 1)./2^15-1)';
@@ -73,12 +73,11 @@ switch ico(3)
         if nrec(1) == 0
             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
         else
-            daqfn('AbortAsyncRead', smdata.inst(ico(1)).data.handle);
-            
+            daqfn('AbortAsyncRead', smdata.inst(ico(1)).data.handle);            
             nsamp = smdata.inst(ico(1)).datadim(ico(2), 1) * smdata.inst(ico(1)).data.downsamp/nrec(1);
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
                 nsamp, 1, nrec(min(2, end))+1, 256+1024+32);% uses total # records
-        end
+         end
         
     case 5
         % for future development: only add channel if no further arguments given        
