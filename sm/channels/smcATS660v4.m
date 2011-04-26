@@ -5,7 +5,15 @@ function [val, rate] = smcATS660v3(ico, val, rate, varargin)
 % ico(3) = 5 configures. val = record length,
 % 4th argument specifies number of readout operations per trigger (can be inf)
 global smdata;
-combine = smdata.inst(ico(1)).data.combine;
+% Allow user to specify how to merge data. useful options are 
+% @(x,y) mean(x,y) 
+% @(x,y) std(diff(double(x),[],y),y)
+if ~isfield(smdata.inst(ico(1)).data,'combine') || isempty(smdata.inst(ico(1)).data.combine)
+  combine = @(x,y) mean(x,y);
+else
+  combine = smdata.inst(ico(1)).data.combine;
+end
+  
     
 
 switch ico(3)
@@ -50,10 +58,10 @@ switch ico(3)
                               ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate)+300);                        
                         if ~isempty(s.subs{1})
                             val((1+i*nsamp):(i*nsamp+nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
-                                (combine(subsref(reshape(buf.value, downsamp, nsamp), s), 1)./2^15-1)';
+                                (combine(subsref(reshape(buf.value(1:downsamp*nsamp), downsamp, nsamp), s), 1)./2^15-1)';
                         else
                             val(i*nsamp+(1:nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
-                                (combine(reshape(buf.value, downsamp, nsamp), 1)./2^15-1);
+                                (combine(reshape(buf.value(1:downsamp*nsamp), downsamp, nsamp), 1)./2^15-1);
                         end
                         if( i + length(smdata.inst(ico(1)).data.buffers) < nrec)                            
                           daqfn('PostAsyncBuffer',smdata.inst(ico(1)).data.handle, buf, nsamp*downsamp*2);
@@ -84,11 +92,13 @@ switch ico(3)
             % 32 (0x20) = ADMA_ALLOC_BUFFERS
             % 1024 = 0x400 = ADMA_TRIGGERED_STREAMING
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
-                nsamp, 1, nrec(min(2, end))+1, 256+1024);% uses total # records
-            for i=1:8 % Number of buffers to use in acquisiton; 
-              smdata.inst(ico(1)).data.buffers(i)=libpointer('uint16Ptr', zeros(nsamp, 1, 'uint16'));
+                nsamp, 1, nrec(min(2, end))+1, 256+1024);% uses total # records            
+            smdata.inst(ico(1)).data.buffers=libpointer('uint16Ptr',1);
+            for i=1:20 % Number of buffers to use in acquisiton; 
+              smdata.inst(ico(1)).data.buffers(i)=libpointer('uint16Ptr', zeros(nsamp+16, 1, 'uint16'));
               daqfn('PostAsyncBuffer', smdata.inst(ico(1)).data.handle, smdata.inst(ico(1)).data.buffers(i), nsamp*2);
-            end
+            end            
+             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
          end
         
     case 5
@@ -130,6 +140,7 @@ switch ico(3)
 
         % make sure #points per record is divisible by 16 and downsampling factor.
         %nrec = ceil(val*downsamp/2^23);
+        %2^23 is number of samples that fit in memory.
         nrec = max(1, 2^(ceil(log2(val*downsamp))-23));
         if nrec > 1 || nargin >= 4
             dsf = 2^max(0, 4-sum(factor(downsamp)==2)); % factors of 2 missing in dowsamp towards 16
