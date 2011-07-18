@@ -401,7 +401,9 @@ for i = 1:length(disp)
 
     if disp(i).dim == 2        
         if dataloop(dc) - ndim(dc) < 0
-            y = [1, datadim(dc, ndim(dc)-1)];
+%            y = [1, datadim(dc, ndim(dc)-1)];  % Not sure what this was
+%            supposed to do.
+            y = [1:datadim(dc, ndim(dc)-1)];
             ylab = 'n';
         else
             y = scandef(dataloop(dc) - ndim(dc) + 1).rng;
