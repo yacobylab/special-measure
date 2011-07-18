@@ -1,6 +1,17 @@
 function val = smcLabBrick(ic, val, rate)
+%function val = smcLabBrick(ic, val, rate)
+% Control function for LabBricks from Vaunix.
+% KNOWN BUG
+%    The loadlibrary path below needs to get updated to the location of this file /labbrick.
+%    it's currently hardwired to a path on our machine, and I'm disinclined to fix it until
+%    we're not measuring.
 % 1: freq, 2: power, 3: rf on/off
+% 4: save settings
 % 11: close
+% 12: print a list of serial numbers
+% example: instrument 20 is a lab brick:
+%  smcLabBrick([20 3 1],1) will turn on power
+
 
 global smdata;
 
@@ -11,6 +22,17 @@ if ~libisloaded('labbrick')
   lbfn('SetTestMode',0);  
 end
 
+if ic(2) == 12
+   nd=lbfn('GetNumDevices');
+   devids=libpointer('uint32Ptr',zeros(nd+1,1));
+   lbfn('GetDevInfo',devids);
+   for i=1:nd
+     fprintf('%d: %d\n',i,lbfn('GetSerialNumber',devids.value(i)));
+   end
+   return;
+end
+    
+    
 % Open the device if needed.
 if ~isfield(smdata.inst(ic(1)).data,'devhandle') || isempty(smdata.inst(ic(1)).data.devhandle)
    nd=lbfn('GetNumDevices');
@@ -19,14 +41,17 @@ if ~isfield(smdata.inst(ic(1)).data,'devhandle') || isempty(smdata.inst(ic(1)).d
    end
    devids=libpointer('uint32Ptr',zeros(nd+1,1));
    lbfn('GetDevInfo',devids);
+   mydev=-1;
    if isfield(smdata.inst(ic(1)).data,'serial') && ~isempty(smdata.inst(ic(1)).data.serial)       
       for i=1:nd
-         if lbfn('GetSerialNumber',devids(i)) == smdata.inst(ic(1)).data.serial
-             mydev=i;
+         if lbfn('GetSerialNumber',devids.value(i)) == smdata.inst(ic(1)).data.serial
+             mydev=i;             
              break;
          end
+      end   
+      if mydev == -1
+        error('No device found matching serial number %d\n',smdata.inst(ic(1)).data.serial);
       end
-      error('No device found matching serial number %d\n',smdata.inst(ic(1)).data.serial);
    else
        mydev = 1;
        if nd > 1
@@ -55,6 +80,8 @@ switch ic(2)
     case 11
        lbfn('CloseDevice',smdata.inst(ic(1)).data.devhandle);
        smdata.inst(ic(1)).data.devhandle=[];            
+    case 10
+        lbfn('SaveSettings',smdata.inst(ic(1)).data.devhandle);
     otherwise
         error('Unknown channel');
 end
