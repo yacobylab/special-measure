@@ -3,6 +3,12 @@ function val = smcAWG5000(ico, val, rate)
 % 7: jump to line (requires active sequence)
 % 8-11 DC offset for channels 1-4
 % 12:27: MARKER 1-4 Low/High for channels 1-4
+%
+% Extra fields that can go into smdata.inst(x).data
+%   chain    ; setting the frequency or pulseline on this instrument 'chains' to the specified instrument;
+%              this allows one to seamlessly set the pulseline on many awg's together.
+%   clockmult; a multiplier to be applied to any clock frequency sets on this device.
+%              allows 7k and 5k to be mixed.
 
 global smdata;
 
@@ -16,11 +22,18 @@ cmds = {':FREQ', ':FREQ', 'SOUR1:VOLT', 'SOUR2:VOLT', 'SOUR3:VOLT', 'SOUR4:VOLT'
 if all(ico(2:3) == [7 0])
     cmds{7} = 'AWGC:SEQ:POS';
 end
+
+if any(ico(2) == [ 1 2 ])  && isfield(smdata.inst(ico(1)).data,'clockmult') && ~isempty(smdata.inst(ico(1)).data.clockmult) 
+    mult=smdata.inst(ico(1)).data.clockmult;
+else
+    mult=1;
+end
+
 switch ico(2)
     case -7; % alternative to reading sequence line
         switch ico(3) 
             case 1
-                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val));
+                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val*mult));
                 smdata.inst(ico(1)).data.line = val;
             case 0
                 val = smdata.inst(ico(1)).data.line;
@@ -31,7 +44,11 @@ switch ico(2)
     otherwise
         switch ico(3) 
             case 1
-                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val));
+                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val*mult));
+                if any(ico(2) == [ 7 1 2]) && isfield(smdata.inst(ico(1)).data,'chain') && ~isempty(smdata.inst(ico(1)).data.chain)
+                    ico(1)=smdata.inst(ico(1)).data.chain;
+                    smcAWG5000(ico,val);
+                end
             case 0
                 val = query(smdata.inst(ico(1)).data.inst, sprintf('%s?', cmds{ico(2)}), '%s\n', '%f');
             otherwise
