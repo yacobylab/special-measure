@@ -11,14 +11,15 @@ if ~isfield(scan.loops, 'ramptime')
      [scan.loops.ramptime] = deal([]);
 end
 
-fprintf('Global transformations:\n-----------------------\n');
 
 if isfield(scan, 'trafofn')
+  fprintf('Global transformations:\n-----------------------\n');
     for i = 1:length(scan.trafofn)
         fprintf('%s\n%', func2str(scan.trafofn{i}));
     end
+  fprintf('\n');
 end
-fprintf('\n');
+
 
 for i = 1:length(scan.loops)
 
