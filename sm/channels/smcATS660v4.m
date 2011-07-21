@@ -1,6 +1,6 @@
 function [val, rate] = smcATS660v3(ico, val, rate, varargin)
 % val = smcATS660v2(ico, val, rate, varargin)
-% ico(3) == 3 sets/gets  HW sample rate.
+% ico(3) == 3 sets/gets  HW sample rate.  negative sets to external fast ac.
 % ico(3) = 4 arm
 % ico(3) = 5 configures. val = record length,
 % 4th argument specifies number of readout operations per trigger (can be inf)
@@ -75,7 +75,7 @@ switch ico(3)
     case 1
         switch ico(2)
             case 3
-                smdata.inst(ico(1)).data.samprate = max(min(val, 130e6), 0);
+                setclock(ico, val);                                 
         end
 
     case 3
@@ -85,20 +85,19 @@ switch ico(3)
         nrec = smdata.inst(ico(1)).data.nrec;
         if nrec(1) == 0
             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
-        else           
-            daqfn('AbortAsyncRead', smdata.inst(ico(1)).data.handle);            
+        else                      
+            daqfn('AbortAsyncRead', smdata.inst(ico(1)).data.handle);
             nsamp = smdata.inst(ico(1)).datadim(ico(2), 1) * smdata.inst(ico(1)).data.downsamp/nrec(1);
+            % 0 (0x0) = ADMA_TRADITIONAL_MODE
             % 256 (0x100) = ADMA_CONTINUOUS_MODE
             % 32 (0x20) = ADMA_ALLOC_BUFFERS
-            % 1024 = 0x400 = ADMA_TRIGGERED_STREAMING
+            % 1024 = 0x400 = ADMA_TRIGGERED_STREAMING            
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
-                nsamp, 1, nrec(min(2, end))+1, 256+1024);% uses total # records            
-            smdata.inst(ico(1)).data.buffers=libpointer('uint16Ptr',1);
-            for i=1:20 % Number of buffers to use in acquisiton; 
-              smdata.inst(ico(1)).data.buffers(i)=libpointer('uint16Ptr', zeros(nsamp+16, 1, 'uint16'));
+                nsamp, 1, nrec(min(2, end)), 1024+256);% uses total # records                        
+            for i=1:min(nrec,20) % Number of buffers to use in acquisiton;                 
               daqfn('PostAsyncBuffer', smdata.inst(ico(1)).data.handle, smdata.inst(ico(1)).data.buffers(i), nsamp*2);
             end            
-             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
+             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);            
          end
         
     case 5
@@ -132,12 +131,8 @@ switch ico(3)
             downsamp = 1;
         end
 
-        rate = rate/1e6;
-        dec = floor(130/rate);
-        rate = max(min(130, round(rate * dec)))*1e6;
-        daqfn('SetCaptureClock', smdata.inst(ico(1)).data.handle, 7, rate, 0, dec-1); % external
-        rate = rate/(dec * downsamp);
-
+        rate=setclock(ico,rate)/downsamp;
+        
         % make sure #points per record is divisible by 16 and downsampling factor.
         %nrec = ceil(val*downsamp/2^23);
         %2^23 is number of samples that fit in memory.
@@ -151,6 +146,13 @@ switch ico(3)
             if npt < 128
                 error('Record size must be larger than 128');
             end
+            
+            smdata.inst(ico(1)).data.buffers=libpointer('uint16Ptr',1);
+            for i=1:20 % Number of buffers to use in acquisiton; 
+              nsamp=val*downsamp/nrec(1);
+              smdata.inst(ico(1)).data.buffers(i)=libpointer('uint16Ptr', zeros(nsamp+16, 1, 'uint16'));              
+            end 
+             
         else
             nrec = 0;
             npt = max(ceil(val*downsamp/16)*16, 128);
@@ -176,4 +178,23 @@ switch ico(3)
         
     otherwise
         error('Operation not supported.');
+end
+
+end
+function rate=setclock(ico, val)
+global smdata;
+if smdata.inst(ico(1)).data.extclk == 0
+    smdata.inst(ico(1)).data.samprate = max(min(val, 130e6), 0);
+    rate = val/1e6;
+    dec = floor(130/rate);
+    rby=1;
+    rate = max(min(130, round(rate * dec/rby)*rby))*1e6;
+    daqfn('SetCaptureClock', smdata.inst(ico(1)).data.handle, 7, rate, 0, dec-1); % external
+    smdata.inst(ico(1)).data.samprate=rate/dec;
+    rate=rate/dec;
+else
+    smdata.inst(ico(1)).data.samprate=val;
+    daqfn('SetCaptureClock', smdata.inst(ico(1)).data.handle, 2 , 64, 0, 0);
+    rate=val;
+end
 end
