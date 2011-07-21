@@ -7,7 +7,6 @@ function val = smcLabBrick(ic, val, rate)
 %    we're not measuring.
 % 1: freq, 2: power, 3: rf on/off
 % 4: save settings
-% 11: close
 % 12: print a list of serial numbers
 % example: instrument 20 is a lab brick:
 %  smcLabBrick([20 3 1],1) will turn on power
@@ -34,7 +33,35 @@ end
     
     
 % Open the device if needed.
-if ~isfield(smdata.inst(ic(1)).data,'devhandle') || isempty(smdata.inst(ic(1)).data.devhandle)
+dh=openDevice(ic);
+
+fscale=1e5;  % Frequency is set in 100khz increments.
+funcs = {'Frequency','PowerLevel','RFOn'};
+scales= [ 1e5, 0.25, 1];
+switch ic(2)
+    case {1,2,3}
+       if ic(3)       
+           lbfn(['Set' funcs{ic(2)}],dh,val/scales(ic(2)));           
+       else
+           val=lbfn(['Get' funcs{ic(2)}],dh)*scales(ic(2));
+           % Work around a bug in the DLL
+           if (ic(2) == 2)
+               val=10-val;
+           end
+       end       
+    case 11        
+       fprintf('Warning: this device auto-closes\n');
+    case 10
+        lbfn('SaveSettings',smdata.inst(ic(1)).data.devhandle);
+    otherwise
+        closeDevice(dh);
+        error('Unknown channel');
+end
+closeDevice(dh);
+end
+
+function dh=openDevice(ic)
+   global smdata;
    nd=lbfn('GetNumDevices');
    if nd == 0
        error('No labbrick attached');
@@ -59,35 +86,14 @@ if ~isfield(smdata.inst(ic(1)).data,'devhandle') || isempty(smdata.inst(ic(1)).d
            fprintf('Choosing first\n');
        end
    end
-   smdata.inst(ic(1)).data.devhandle=devids.value(mydev);
-   lbfn('InitDevice',smdata.inst(ic(1)).data.devhandle);       
+   dh=smdata.inst(ic(1)).data.devhandle;
+   lbfn('InitDevice',dh);
 end
 
-fscale=1e5;  % Frequency is set in 100khz increments.
-funcs = {'Frequency','PowerLevel','RFOn'};
-scales= [ 1e5, 0.25, 1];
-switch ic(2)
-    case {1,2,3}
-       if ic(3)       
-           lbfn(['Set' funcs{ic(2)}],smdata.inst(ic(1)).data.devhandle,val/scales(ic(2)));           
-       else
-           val=lbfn(['Get' funcs{ic(2)}],smdata.inst(ic(1)).data.devhandle)*scales(ic(2));
-           % Work around a bug in the DLL
-           if (ic(2) == 2)
-               val=10-val;
-           end
-       end       
-    case 11
-       lbfn('CloseDevice',smdata.inst(ic(1)).data.devhandle);
-       smdata.inst(ic(1)).data.devhandle=[];            
-    case 10
-        lbfn('SaveSettings',smdata.inst(ic(1)).data.devhandle);
-    otherwise
-        error('Unknown channel');
+function closeDevice(dh)
+  lbfn('CloseDevice',dh);
 end
-end
-
-
+  
 function varargout = lbfn(fn, varargin)
 [varargout{1:nargout}] = calllib('labbrick', ['lb_', fn], varargin{:});
 end
