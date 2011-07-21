@@ -1,0 +1,12 @@
+# use glob syntax.
+syntax: glob
+# ignore emacs autosave files
+*~
+# ignore matlab autosave files
+*.asv
+
+# switch to regexp syntax.
+syntax: regexp
+# ignore unused backup subdirectories.
+^bak/
+^new/
