@@ -2,7 +2,7 @@ function [nextstr nextnum]=smnext(name)
 % function [nextstr nextnum]=smnext(name)
 % Return a numbered name for the next scan.  If name is present, it is
 % prepended to the number with an _ inbetween.
-tic
+
 global smn_lastname;
 global smn_lastfile;
 global smn_lastnum;
@@ -42,5 +42,5 @@ fprintf('Next file: %s\n',nextstr);
 smn_lastname=name;
 smn_lastfile=sprintf('sm_%s.mat',nextstr);
 smn_lastnum=nextnum;
-toc
+
 end

@@ -1,7 +1,8 @@
-function val = smcLabBrick(inst, opt)
-% function val = smcLabBrick(inst, opt)
+function val = smcLabBrick(insts, opt)
+% function val = smcLabBrick(insts, opt)
 % inst is the inst number of name of the lab brick (fix me use sminstlookup)
 % Control function for LabBricks from Vaunix.
+% inst can be a cell array of insts.
 % opt can contain any of:
 %   on  - turn the RF on
 %  off  - turn the RF off
@@ -10,24 +11,31 @@ function val = smcLabBrick(inst, opt)
 
 global smdata;
 
-inst=sminstlookup(inst);
-
-if ~isempty(strmatch(opt,'list'))
-  smcLabBrick([inst 12 1], 1, inf);
+if ~iscell(insts) && ~isnumeric(insts)
+  insts={insts};
 end
 
-if ~isempty(strmatch(opt,'on'))
-  smcLabBrick([inst 3 1], 1, inf);
-end
-
-if ~isempty(strmatch(opt,'off'))   
-  smcLabBrick([inst 3 1], 0, inf);
-end
-
-if ~isempty(strmatch(opt,'save'))
-  smcLabBrick([inst 10 1], 0, inf);  
-end
+for i=1:length(insts)
+    inst=sminstlookup(insts(i));
     
+    if ~isempty(strmatch(opt,'list'))
+        smcLabBrick([inst 12 1], 1, inf);
+    end
+    
+    if ~isempty(strmatch(opt,'on'))
+        smcLabBrick([inst 3 1], 1, inf);
+    end
+    
+    if ~isempty(strmatch(opt,'off'))
+        smcLabBrick([inst 3 1], 0, inf);
+    end
+    
+    if ~isempty(strmatch(opt,'save'))
+        smcLabBrick([inst 10 1], 0, inf);
+    end
+    
+end
+
 end
 
 function varargout = lbfn(fn, varargin)

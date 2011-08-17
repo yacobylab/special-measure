@@ -86,7 +86,7 @@ function dh=openDevice(ic)
            fprintf('Choosing first\n');
        end
    end
-   dh=smdata.inst(ic(1)).data.devhandle;
+   dh=mydev;
    lbfn('InitDevice',dh);
 end
 
