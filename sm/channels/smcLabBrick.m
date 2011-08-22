@@ -52,7 +52,7 @@ switch ic(2)
     case 11        
        fprintf('Warning: this device auto-closes\n');
     case 10
-        lbfn('SaveSettings',smdata.inst(ic(1)).data.devhandle);
+        lbfn('SaveSettings',dh);
     otherwise
         closeDevice(dh);
         error('Unknown channel');
