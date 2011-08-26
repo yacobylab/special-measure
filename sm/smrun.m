@@ -17,7 +17,7 @@ function data = smrun(scan, filename)
 % figure: number of figure to be plotted on. Uses next available figure
 %         starting at 1000 if Nan. 
 % loops: struct array with one element for each dimension, fields given
-%        below. The last entry is for the fastest, innermost loop
+%        below. The first entry is for the fastest, innermost loop
 %   fields of loops:
 %   rng, 
 %   npoints (empty means take rng as a vector, otherwise rng defines limits)
