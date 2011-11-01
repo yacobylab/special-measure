@@ -1,4 +1,4 @@
-function val = smcLabBrick(insts, opt)
+function val = smalbcntrl(insts, opt)
 % function val = smcLabBrick(insts, opt)
 % inst is the inst number of name of the lab brick (fix me use sminstlookup)
 % Control function for LabBricks from Vaunix.
@@ -36,8 +36,4 @@ for i=1:length(insts)
     
 end
 
-end
-
-function varargout = lbfn(fn, varargin)
-[varargout{1:nargout}] = calllib('labbrick', ['lb_', fn], varargin{:});
 end
