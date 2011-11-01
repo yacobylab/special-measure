@@ -1,7 +1,8 @@
-function [nextstr nextnum]=smnext(name)
-% function [nextstr nextnum]=smnext(name)
+function [nextstr nextnum]=smnext(name, opts)
+% function [nextstr nextnum]=smnext(name, opts)
 % Return a numbered name for the next scan.  If name is present, it is
 % prepended to the number with an _ inbetween.
+% opts = 'quiet' will not print next filename to cmd line
 
 global smn_lastname;
 global smn_lastfile;
@@ -10,6 +11,10 @@ if exist('name','var')
     name=[name '_'];
 else
     name='';
+end
+
+if ~exist('opts','var') || isempty(opts)
+    opts = '';
 end
 
 search=1;
@@ -38,7 +43,10 @@ if search
 end
 
 nextstr=sprintf('%s%04d',name,nextnum);
-fprintf('Next file: %s\n',nextstr);
+
+if ~strcmp(opts, 'quiet')    
+    fprintf('Next file: %s\n',nextstr);
+end
 smn_lastname=name;
 smn_lastfile=sprintf('sm_%s.mat',nextstr);
 smn_lastnum=nextnum;

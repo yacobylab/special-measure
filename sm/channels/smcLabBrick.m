@@ -16,7 +16,8 @@ global smdata;
 
 % Open the library if needed.
 if ~libisloaded('labbrick')
-  loadlibrary('z:\qDots\labbrick\labbrick','z:\qDots\labbrick\labbrick.h','alias','labbrick');
+  path=strrep(which('smcLabBrick'),'smcLabBrick.m','labbrick') ;  
+  loadlibrary([path '/labbrick'],[path '/labbrick.h'],'alias','labbrick');
   smdata.inst(ic(1)).data.devhandle=[];
   lbfn('SetTestMode',0);  
 end
