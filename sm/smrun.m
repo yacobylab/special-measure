@@ -80,7 +80,7 @@ if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(sca
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
-    scan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
+    scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
 end
 
 % set global constants for the scan, held in field scan.consts
