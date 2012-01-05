@@ -95,14 +95,13 @@ try
            break;
         end
       end  
-      data.val
       assert(data.val(2) == cmds(ic(2)).size);  % Check payload size.
       % Parse the payload
       switch data.val(2) 
           case 4  % 32 bit int.
               p=data+2;
               setdatatype(p,'uint32Ptr',1);
-              val = doucle(p.value) * cmds(ic(2)).scale + cmds(ic(2)).offset;
+              val = double(p.value) * cmds(ic(2)).scale + cmds(ic(2)).offset;
               clear p;              
           case 1
               val = double(data.val(3)) * cmds(ic(2)).scale - cmds(ic(2)).offset;              

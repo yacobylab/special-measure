@@ -22,6 +22,15 @@ cmds = {':FREQ', ':FREQ', 'SOUR1:VOLT', 'SOUR2:VOLT', 'SOUR3:VOLT', 'SOUR4:VOLT'
 if all(ico(2:3) == [7 0])
     cmds{7} = 'AWGC:SEQ:POS';
 end
+if all(ico(2:3) == [7 1]) % Guarantee jump happens before return; important for trigger waits w/ multiple awgs.
+  % AWG will not jump if waiting for trigger.  Pre *trg helps this.
+  query(smdata.inst(ico(1)).data.inst,sprintf('*TRG;SEQ:JUMP %d;*OPC?',val));
+  if isfield(smdata.inst(ico(1)).data,'chain') && ~isempty(smdata.inst(ico(1)).data.chain)
+    ico(1)=smdata.inst(ico(1)).data.chain;
+    smcAWG5000(ico,val);    
+  end
+  return;
+end
 
 if any(ico(2) == [ 1 2 ])  && isfield(smdata.inst(ico(1)).data,'clockmult') && ~isempty(smdata.inst(ico(1)).data.clockmult) 
     mult=smdata.inst(ico(1)).data.clockmult;
@@ -44,10 +53,13 @@ switch ico(2)
     otherwise
         switch ico(3) 
             case 1
-                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val*mult));
+                fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val*mult));                
                 if any(ico(2) == [ 7 1 2]) && isfield(smdata.inst(ico(1)).data,'chain') && ~isempty(smdata.inst(ico(1)).data.chain)
                     ico(1)=smdata.inst(ico(1)).data.chain;
                     smcAWG5000(ico,val);
+                end
+                if 1 && ico(2) == 2  % Make sure frequency changes are synchronus.
+                  query(smdata.inst(ico(1)).data.inst, '*OPC?');                  
                 end
             case 0
                 val = query(smdata.inst(ico(1)).data.inst, sprintf('%s?', cmds{ico(2)}), '%s\n', '%f');

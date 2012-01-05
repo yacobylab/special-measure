@@ -1,10 +1,13 @@
-function [val, rate] = smcATS660v3(ico, val, rate, varargin)
+function [val, rate] = smcATS660v4(ico, val, rate, varargin)
 % val = smcATS660v2(ico, val, rate, varargin)
 % ico(3) == 3 sets/gets  HW sample rate.  negative sets to external fast ac.
 % ico(3) = 4 arm
 % ico(3) = 5 configures. val = record length,
 % 4th argument specifies number of readout operations per trigger (can be inf)
 global smdata;
+maxbuf=256;
+extrabuf=40;
+extracap=4;
 % Allow user to specify how to merge data. useful options are 
 % @(x,y) mean(x,y) 
 % @(x,y) std(diff(double(x),[],y),y)
@@ -14,7 +17,6 @@ else
   combine = smdata.inst(ico(1)).data.combine;
 end
   
-    
 
 switch ico(3)
     case 0
@@ -40,7 +42,6 @@ switch ico(3)
                     buf = libpointer('uint16Ptr', zeros(nsamp*downsamp+16, 1, 'uint16'));
                     % see p. 26 of ATS-SDK manual regarfding exrta 16 samples
                     while calllib('ATSApi', 'AlazarBusy', smdata.inst(ico(1)).data.handle); end
-
                     daqfn('Read',  smdata.inst(ico(1)).data.handle, ico(2), buf, 2, 1, 0, nsamp*downsamp);
                     if ~isempty(s.subs{1})
                         val = smdata.inst(ico(1)).data.rng(ico(2)) * ...
@@ -51,11 +52,16 @@ switch ico(3)
                 else
                     val = zeros(nsamp*nrec, 1);
                     
-                    for i = 0:nrec-1 % read # records/readout
-                        buf=smdata.inst(ico(1)).data.buffers(mod(i,end)+1);
-                        daqfn('WaitAsyncBufferComplete', smdata.inst(ico(1)).data.handle, ...
-                              buf, ...                                                
-                              ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate)+300);                        
+                    for i = 0:nrec-1 % read # records/readout                        
+                        buf=smdata.inst(ico(1)).data.buffers{mod(i,end)+1};    
+                        try                          
+                          daqfn('WaitAsyncBufferComplete', smdata.inst(ico(1)).data.handle, ...
+                                buf, ...                                                
+                               2*ceil(3000*nsamp*downsamp/smdata.inst(ico(1)).data.samprate)+500);
+                        catch err;
+                           fprintf('\nOn buffer %d/%d, %d total\n',i+1,nrec,length(smdata.inst(ico(1)).data.buffers));   
+                           rethrow(err);
+                        end
                         if ~isempty(s.subs{1})
                             val((1+i*nsamp):(i*nsamp+nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
                                 (combine(subsref(reshape(buf.value(1:downsamp*nsamp), downsamp, nsamp), s), 1)./2^15-1)';
@@ -63,12 +69,13 @@ switch ico(3)
                             val(i*nsamp+(1:nsamp)) = smdata.inst(ico(1)).data.rng(ico(2)) * ...
                                 (combine(reshape(buf.value(1:downsamp*nsamp), downsamp, nsamp), 1)./2^15-1);
                         end
-                        if( i + length(smdata.inst(ico(1)).data.buffers) < nrec)                            
+                        if (nrec-i) > length(smdata.inst(ico(1)).data.buffers)
                           daqfn('PostAsyncBuffer',smdata.inst(ico(1)).data.handle, buf, nsamp*downsamp*2);
                         end
-                    end
+                    end                      
                 end
-                
+                daqfn('AbortAsyncRead', smdata.inst(ico(1)).data.handle);                
+%                pause(.1);
             case 3
                 val = smdata.inst(ico(1)).data.samprate;        
         end
@@ -93,12 +100,19 @@ switch ico(3)
             % 32 (0x20) = ADMA_ALLOC_BUFFERS
             % 1024 = 0x400 = ADMA_TRIGGERED_STREAMING            
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
-                nsamp, 1, nrec(min(2, end)), 1024+256);% uses total # records                        
-            for i=1:min(nrec,20) % Number of buffers to use in acquisiton;                 
-              daqfn('PostAsyncBuffer', smdata.inst(ico(1)).data.handle, smdata.inst(ico(1)).data.buffers(i), nsamp*2);
-            end            
-             daqfn('StartCapture', smdata.inst(ico(1)).data.handle);            
-         end
+                nsamp, 1, nrec(min(2, end))+extracap, 1024);% uses total # records
+            %            daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
+            %                nsamp, 1, 2147483647, 1024+1);% uses total # records
+            for i=1:length(smdata.inst(ico(1)).data.buffers) % Number of buffers to use in acquisiton;
+                daqfn('PostAsyncBuffer', smdata.inst(ico(1)).data.handle, smdata.inst(ico(1)).data.buffers{i}, nsamp*2);
+            end
+            daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
+                nsamp, 1, nrec(min(2, end))+extracap, 1024);% uses total # records
+            
+            daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
+            daqfn_ne('WaitAsyncBufferComplete', smdata.inst(ico(1)).data.handle, ...
+                smdata.inst(ico(1)).data.buffers{1},1);
+        end
         
     case 5
         % for future development: only add channel if no further arguments given        
@@ -136,21 +150,23 @@ switch ico(3)
         % make sure #points per record is divisible by 16 and downsampling factor.
         %nrec = ceil(val*downsamp/2^23);
         %2^23 is number of samples that fit in memory.
-        nrec = max(1, 2^(ceil(log2(val*downsamp))-23));
+        %2^20 gives ~1 Mbyte buffers.
+        % (23 in eqn below).
+        nrec = max(1, 2^(ceil(log2(val*downsamp))-22));        
         if nrec > 1 || nargin >= 4
             dsf = 2^max(0, 4-sum(factor(downsamp)==2)); % factors of 2 missing in dowsamp towards 16
-            npt = ceil(val/(dsf * nrec))*dsf; %# samples/record after downsampling
+            npt = ceil(val/(dsf * nrec))*dsf; %# samples/record after downsampling            
             val = npt*nrec; % should be an int, but avoid rounding errors
+%            fprintf('Buffers have %d million points\n',val*downsamp/(1e6*nrec(1)));
             npt = npt*downsamp;
             
             if npt < 128
                 error('Record size must be larger than 128');
-            end
-            
-            smdata.inst(ico(1)).data.buffers=libpointer('uint16Ptr',1);
-            for i=1:20 % Number of buffers to use in acquisiton; 
+            end            
+            smdata.inst(ico(1)).data.buffers={};
+            for i=1:min(nrec*2+extrabuf,maxbuf) % Number of buffers to use in acquisiton; 
               nsamp=val*downsamp/nrec(1);
-              smdata.inst(ico(1)).data.buffers(i)=libpointer('uint16Ptr', zeros(nsamp+16, 1, 'uint16'));              
+              smdata.inst(ico(1)).data.buffers{i}=libpointer('uint16Ptr', zeros(nsamp+16, 1, 'uint16'));              
             end 
              
         else
@@ -197,4 +213,13 @@ else
     daqfn('SetCaptureClock', smdata.inst(ico(1)).data.handle, 2 , 64, 0, 0);
     rate=val;
 end
+end
+
+function varargout = daqfn_ne(fn, varargin)
+
+% (c) 2010 Hendrik Bluhm.  Please see LICENSE and COPYRIGHT information in plssetup.m.
+
+%fprintf('Calling %s\n',fn);
+[varargout{1:nargout}] = calllib('ATSApi', ['Alazar', fn], varargin{:});
+
 end

@@ -11,6 +11,7 @@ switch ic(3)
     case 0
         val = query(smdata.inst(ic(1)).data.inst, sprintf('%s?', cmds{ic(2)}), '%s\n', '%f');
     otherwise
-        error('Operation not supported');
+        error('Operation not supported');     
 end
+
 
