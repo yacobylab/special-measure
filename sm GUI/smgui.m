@@ -261,7 +261,7 @@ function LoadScan(hObject,eventdata)
     scaninit;
 end
 
-function LoadRack(hObject,eventdata)
+function OpenRack(hObject,eventdata)
     [smdataFile,smdataPath] = uigetfile('*.mat','Select Rack File');
     if smdataFile
         S=load (fullfile(smdataPath,smdataFile));

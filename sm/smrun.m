@@ -236,14 +236,25 @@ for i = 1:nloops
         end
             
         if ~isfield(scandef(i).procfn(j).fn, 'inchan')
-            for k = 1:length(scandef(i).procfn(j).fn)
+            for k = 1:length(scandef(i).procfn(j).fn)                
                 scandef(i).procfn(j).fn(k).inchan = j;
             end
         end
-       
-        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan')
+               
+        if ~isempty(scandef(i).procfn(j).fn) && ~isfield(scandef(i).procfn(j).fn, 'outchan') 
             [scandef(i).procfn(j).fn.outchan] = deal(scandef(i).procfn(j).fn.inchan);
         end
+        
+        if ~isempty(scandef(i).procfn(j).fn)
+          for k = 1:length(scandef(i).procfn(j).fn)
+              if isempty(scandef(i).procfn(j).fn(k).inchan)
+                  scandef(i).procfn(j).fn(k).inchan = j;
+              end
+              if isempty(scandef(i).procfn(j).fn(k).outchan)
+                  scandef(i).procfn(j).fn(k).outchan = scandef(i).procfn(j).fn(k).inchan;
+              end
+          end
+        end       
     end
         
     if isempty(scandef(i).ramptime)
@@ -390,7 +401,9 @@ for i = 1:length(disp)
 
     if disp(i).dim == 2        
         if dataloop(dc) - ndim(dc) < 0
-            y = [1, datadim(dc, ndim(dc)-1)];
+%            y = [1, datadim(dc, ndim(dc)-1)];  % Not sure what this was
+%            supposed to do.
+            y = [1:datadim(dc, ndim(dc)-1)];
             ylab = 'n';
         else
             y = scandef(dataloop(dc) - ndim(dc) + 1).rng;
@@ -457,7 +470,7 @@ for i = 1:nloops
         && all(scandef(i).ramptime < 0) && isempty(scandef(i).getchan) ...
         &&  (~isfield(scandef(i), 'prefn') || isempty(scandef(i).prefn)) ...
         && (~isfield(scandef(i), 'postfn') || isempty(scandef(i).postfn)) ...
-        && ~any(scan.saveloop(1) == j) && ~any([disp.loop] == j);
+        && ~any(scan.saveloop(1) == i) && ~any([disp.loop] == i);
 end
 
 loops = 1:nloops; % indices of loops to be updated. 1 = fastest loop
@@ -548,6 +561,10 @@ for i = 1:totpoints
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
         
+        if isfield(scandef, 'postfn')
+            fncall(scandef(j).postfn, xt);
+        end
+
         ind = sum(ngetchan(1:j-1));
         for k = 1:length(scandef(j).procfn) 
             
@@ -605,10 +622,6 @@ for i = 1:totpoints
             save(filename, '-append', 'data');
         end
                
-        if isfield(scandef, 'postfn')
-            fncall(scandef(j).postfn, xt);
-        end
-
         if isfield(scandef, 'datafn')
             fncall(scandef(j).datafn, xt, data);
         end
