@@ -109,9 +109,9 @@ switch ico(3)
             daqfn('BeforeAsyncRead',  smdata.inst(ico(1)).data.handle, ico(2), 0, ...
                 nsamp, 1, nrec(min(2, end))+extracap, 1024);% uses total # records
             
-            daqfn('StartCapture', smdata.inst(ico(1)).data.handle);
-            daqfn_ne('WaitAsyncBufferComplete', smdata.inst(ico(1)).data.handle, ...
-                smdata.inst(ico(1)).data.buffers{1},1);
+            daqfn('StartCapture', smdata.inst(ico(1)).data.handle);         
+            daqfn_ne('WaitAsyncBufferComplete', smdata.inst(ico(1)).data.handle, smdata.inst(ico(1)).data.buffers{1},1);
+            %pause(50e-3);
         end
         
     case 5

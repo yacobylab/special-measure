@@ -70,6 +70,10 @@ switch ic(3)
         val = dacread(smdata.inst(ic(1)).data.inst, ...
             sprintf('B%1d;C%1d;d;', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)), '%*7c%d');
         val = val*diff(rng)/65535 + rng(1);
+        if length(val) > 1
+            error(['Apparent DAC comm error. MATLAB sucks.\n',...
+                'Consider closing and opening the instrument with smclose and smopen \n']);
+        end
         
     case 3        
         dacwrite(smdata.inst(ic(1)).data.inst, sprintf('B%1d;C%1d;G0;', floor((ic(2)-1)/8), floor(mod(ic(2)-1, 8)/2)));
@@ -83,7 +87,7 @@ function dacwrite(inst, str)
 try
     query(inst, str);
 catch
-    fprintf('WARNING: error in DAC communication. Flushing buffer.\n');
+    fprintf('WARNING: error in DAC (%s) communication. Flushing buffer.\n',inst.Port);
     while inst.BytesAvailable > 0
         fprintf(fscanf(inst));
     end
@@ -100,7 +104,7 @@ while i < 10
         val = query(inst, str, '%s\n', format);
         i = 10;
     catch
-        fprintf('WARNING: error in DAC communication. Flushing buffer and repeating.\n');
+        fprintf('WARNING: error in DAC (%s) communication. Flushing buffer and repeating.\n',inst.Port);
         while inst.BytesAvailable > 0
             fprintf(fscanf(inst))
         end

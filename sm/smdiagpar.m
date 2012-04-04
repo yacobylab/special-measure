@@ -9,6 +9,7 @@ function scan = smdiagpar(scan, angle, cntr, loops)
 % and sets the scan range to be centered around cntr.
 % Keep in mind thatin order to rotate the scan, both x and y channels must
 % be set in the innermost loop.
+%angle in radians
 
 if nargin < 4
     loops =[];

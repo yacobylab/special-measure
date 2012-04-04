@@ -273,9 +273,18 @@ for i = 1:nloops
                 if isempty(scandef(i).trafofn{j})
                     scandef(i).trafofn{j} = @(x, y) x(i);
                 end
-            elseif isempty(scandef(i).trafofn(j).fn)
-                scandef(i).trafofn(j).fn = @(x, y) x(i);
-                scandef(i).trafofn(j).args = {};
+            else
+                if isempty(scandef(i).trafofn(j).fn)
+                  scandef(i).trafofn(j).fn = @(x, y) x(i);
+                  scandef(i).trafofn(j).args = {};
+                end
+                if ~iscell(scandef(i).trafofn(j).args)
+                    if ~isempty(scandef(i).trafofn(j).args)
+                        error('Trafofn args must be a cell array');
+                    else
+                        scandef(i).trafofn(j).args={};
+                    end
+                end
             end                
         end
     end
@@ -679,6 +688,13 @@ else
     for i = 1:length(fns)
         if ischar(fns(i).fn)
           fns(i).fn = str2func(fns(i).fn);
+        end
+        if ~iscell(fns(i).args)
+            if isempty(fns(i).args)
+                fns(i).args={};
+            else
+                error('Arguments to functions must be a cell array');
+            end
         end
         fns(i).fn(varargin{:}, fns(i).args{:});        
     end

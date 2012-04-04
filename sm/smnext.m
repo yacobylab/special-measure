@@ -44,8 +44,12 @@ end
 
 nextstr=sprintf('%s%04d',name,nextnum);
 
-if ~strcmp(opts, 'quiet')    
+if isempty(strfind(opts, 'quiet'))    
     fprintf('Next file: %s\n',nextstr);
+end
+
+if isempty(strfind(opts, 'nocutbuffer'))
+    clipboard('copy',nextstr);
 end
 smn_lastname=name;
 smn_lastfile=sprintf('sm_%s.mat',nextstr);
