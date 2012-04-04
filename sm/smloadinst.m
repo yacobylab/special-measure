@@ -39,6 +39,8 @@ if ~isempty(constructor)
             otherwise 
                 adaptor = {};
         end
+    elseif ~iscell(adaptor)
+        adaptor = {adaptor};
     end
     if ~strcmp(adaptor, 'none')
         if nargin >= 4

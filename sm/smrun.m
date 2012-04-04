@@ -17,7 +17,7 @@ function data = smrun(scan, filename)
 % figure: number of figure to be plotted on. Uses next available figure
 %         starting at 1000 if Nan. 
 % loops: struct array with one element for each dimension, fields given
-%        below. The last entry is for the fastest, innermost loop
+%        below. The first entry is for the fastest, innermost loop
 %   fields of loops:
 %   rng, 
 %   npoints (empty means take rng as a vector, otherwise rng defines limits)
@@ -80,7 +80,7 @@ if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(sca
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
-    scan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
+    scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
 end
 
 % set global constants for the scan, held in field scan.consts
