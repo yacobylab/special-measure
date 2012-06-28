@@ -3,14 +3,12 @@ function val = smcIPS12010GPIB(ico, val, rate)
 % settings for GPIB:
 % usually board index is 0, address is 25
 % can change Timeout to 1
-% make sure to type the following into the matlab command line:
-%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOIMode = 'off'
-%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSCharCode = 'CR'
-%               smdata.inst([INSTRUMENT_NUMBER]).data.inst.EOSMode = 'read'
+% 6/27/2012: modified to automatically reset GPIB comm parameters with each
+%           invocation.  Much safer.
+%           
 % 1/18/2010: modified to close and open magnet if behavior is sluggish
 %           currently uses tic/toc instead of cputime because of bad
 %           behavior of cputime on MX400 computer.
-%
 % 4/9/2010: added ramp support (set ramprate < 0, and use
 %   scan.loops(1).trigfn.fn=@smatrigfn.  using GUI, setting
 %   smscan.loops(1).trigfn.autoset=1 is enough.
@@ -34,7 +32,12 @@ end
 
 mag = smdata.inst(ico(1)).data.inst;
 
-
+%tm=now;
+% The next three lines take < 1 microsecond to run.  Why not be kind?
+set(mag,'EOIMode','off');
+set(mag,'EOSCharCode','CR');
+set(mag,'EOSMode','read');
+%fprintf('Safety took %f seconds',now-tm);
 
 switch ico(2) % channel
 

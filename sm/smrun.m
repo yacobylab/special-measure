@@ -449,7 +449,11 @@ end
 
 x = zeros(1, nloops);
 
-configvals = cell2mat(smget(smdata.configch));
+if isfield(scan,'configch')
+  configvals = cell2mat(smget(scan.configch));    
+else
+  configvals = cell2mat(smget(smdata.configch));
+end
 configch = {smdata.channels(smchanlookup(smdata.configch)).name};
 
 configdata = cell(1, length(smdata.configfn));
