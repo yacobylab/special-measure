@@ -9,7 +9,8 @@ global smdata;
 nchan = length(smdata.channels);
 
 figure(999);
-set(999, 'position', [10, 700-14*nchan, 220, 14*nchan+20], 'MenuBar', 'none', ...
+s=get(0,'ScreenSize');
+set(999, 'position', [10, s(4)-50-14*nchan, 220, 14*nchan+20], 'MenuBar', 'none', ...
     'Name', 'Channels');
 
 str = cell(1, nchan);

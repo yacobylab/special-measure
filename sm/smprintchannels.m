@@ -16,7 +16,15 @@ fprintf(['CH', fmt(4:end)], 'Name', 'Device', 'Dev. Name', 'Dev. Ch.');
 fprintf([repmat('-', 1, 60), '\n']);
 for i = ch;
     ic = smdata.channels(i).instchan;
-    fprintf(fmt, i, ...
+    if ic(1) > length(smdata.inst) 
+        fprintf('%2d %-10s BORKED: refers to an instrument that doesn''t exist\n', ...
+            i, smdata.channels(i).name);
+    elseif ic(2) > size(smdata.inst(ic(1)).channels,1)
+                fprintf('%2d %-10s %-10s BORKED: refers to a channel that doesn''t exist\n', ...
+            i, smdata.channels(i).name,smdata.inst(ic(1)).device);
+    else
+        fprintf(fmt, i, ...
         smdata.channels(i).name, smdata.inst(ic(1)).device, smdata.inst(ic(1)).name, ...
-        smdata.inst(ic(1)).channels(ic(2), :));
+        smdata.inst(ic(1)).channels(ic(2), :));    
+    end
 end

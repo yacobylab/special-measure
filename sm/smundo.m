@@ -21,7 +21,7 @@ if (now - st.datenum)*24*60 > 5
     return;
   end
 end
-if st.bytes > 1e3
+if st.bytes > 3e3
     s=input(sprintf('Warning -- this file is %g bytes long.  Are you sure? ',st.bytes),'s');  
     if upper(s) ~= 'Y'
       fprintf('Please make up your mind!\n');

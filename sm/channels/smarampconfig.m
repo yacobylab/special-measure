@@ -24,7 +24,10 @@ if nargin >=3 && ovsmpl ~= 1
     pf.dim = scan.loops(1).npoints;
     pf.fn.fn = @decimate;
     pf.fn.args = {ovsmpl};
-    scan.loops(2).procfn(1:length(scan.loops(2).getchan)) = pf;
+    if isempty(scan.loops(2).procfn)
+      scan.loops(2).procfn=pf;
+    end
+    scan.loops(2).procfn(1:length(scan.loops(2).getchan)) = pf;    
 else
     lenrate = smabufconfig(ic(:, 1)', scan.loops(1).npoints, 1/abs(scan.loops(1).ramptime), cntrl);
     scan.loops(1).npoints = lenrate(1);
@@ -45,7 +48,7 @@ if strfind(cntrl, 'YokoTDS')
     scan.loops(1).trigfn.args = {sminstlookup('TDS5104'), yokos(:, 1)};
 elseif strfind(cntrl, 'AWG')
     scan.loops(1).trigfn.fn = @smatrigAWG;
-    scan.loops(1).trigfn.args = {sminstlookup('AWG520')};
+    scan.loops(1).trigfn.args = {sminstlookup('AWG5000')};
     %scan.loops(1).trigfn.fn = @smset;
     %scan.loops(1).trigfn.args = {'PulseLine', 1};
 else

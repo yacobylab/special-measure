@@ -12,7 +12,7 @@ else
     inst = sminstlookup(inst);
 end
 
-for i = 0:size(smdata.inst(inst).channels, 1)/8-1
+for i = 0:((size(smdata.inst(inst).channels, 1)-1)/8-1)
     query(smdata.inst(inst).data.inst, sprintf('B%d;M2;', i));
     if isfield(smdata.inst(inst).data, 'update')
        for j = 0:3

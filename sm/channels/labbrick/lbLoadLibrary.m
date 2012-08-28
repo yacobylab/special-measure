@@ -9,7 +9,6 @@ if ~libisloaded('hidapi')
     else
         libname='\i32\hidapi';
     end
-    
     loadlibrary([p libname '.dll'],[p libname '.h'],'alias','hidapi');
         
     if ~libisloaded('hidapi')
