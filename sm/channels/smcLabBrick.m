@@ -7,7 +7,10 @@ function val = smcLabBrick(ic, val, rate)
 % 12: print a list of serial numbers (nb ; now only prints first serial.
 % example: instrument 20 is a lab brick:
 %  smcLabBrick([20 3 1],1) will turn on power
-
+persistent holdoff; % Used to guarantee small pause between open and close
+if ~exist('holdoff','var')
+    holdoff=0;
+end
 
 global smdata;
 
@@ -33,6 +36,10 @@ end
 % Open the device if needed.
 h=libpointer();
 try
+  if now-holdoff < 0.01
+      %'holdoff'
+      pause(0.001);
+  end
   h=calllib('hidapi','hid_open',lb_manufacturer,lb_product,libpointer('uint16Ptr',[uint16(smdata.inst(ic(1)).data.serial) 0]));  
   if h.isNull
       error('Unable to open labbrick serial %s\n',smdata.inst(ic(1)).data.serial);
@@ -115,12 +122,14 @@ try
   end
   
   calllib('hidapi','hid_close',h);  h=libpointer();
+  holdoff=now;
 catch err
   if strcmp(err.identifier,'hidapi:hiderror')
       showHidError(h);
   end
   if ~h.isNull
      calllib('hidapi','hid_close',h);
+     holdoff=now;
   end
   rethrow(err);
 end
@@ -135,8 +144,7 @@ function showHidError(h)
       str=calllib('hidapi','hid_error',h);
       for i=1:256
           setdatatype(str,'uint16Ptr',i);
-          if(str.value(end) == 0)
-            i
+          if(str.value(end) == 0)            
             setdatatype(str,'uint16Ptr',i-1);              
             str=char(str.value);
             break;
