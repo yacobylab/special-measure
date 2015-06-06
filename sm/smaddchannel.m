@@ -1,11 +1,12 @@
 function pos = smaddchannel(inst, channel, name, rangeramp, pos)
-% smaddchannel(dev, channel, channame, rangeramp, pos)
+% function pos = smaddchannel(inst, channel, name, rangeramp, pos)
 % 
-% Add channel channel from instrument dev with name channame.
+% Add channel from instrument 'inst' with name 'name' to position 'pos' in
+% channel list. If pos not given, channel added to the end. 
+% channel is the number or name of channel in smdata.inst.channels
 % rangeramp defaults to [-Inf, Inf, Inf, 1];
 % The first two elements are the range limits,
-% the last two elements the ramp rate (1/2) and the conversion factor.
-
+% the last two elements the ramp rate (1/2) and the divider (see Wiki).
 
 global smdata;
 
@@ -24,7 +25,8 @@ end
 inst = sminstlookup(inst);
 
 if ~isnumeric(channel)
-    channel = strmatch(channel, strvcat(smdata.inst(inst).channels), 'exact');
+    %channel = strmatch(channel, strvcat(smdata.inst(inst).channels), 'exact');
+    channel = strcmp(channel, char(smdata.inst(inst).channels));
 end
 
 if isempty(channel)

@@ -1,5 +1,5 @@
 function sminitdisp
-% sminitdisp
+% function sminitdisp
 %
 % Initialize figure 999 to display current channel values.
 % The displayed values of all scalar channels will be updated by every 

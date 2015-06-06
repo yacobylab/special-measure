@@ -1,5 +1,5 @@
 function smset(channels, vals, ramprate)
-% smset(channels, vals, ramprate)
+% function smset(channels, vals, ramprate)
 %
 % Set channels to vals.
 % channels can be a cell or char array with channel names, or a vector

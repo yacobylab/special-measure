@@ -1,5 +1,5 @@
 function ic = smchaninst(chan)
-% ic = smchaninst(chan)
+% function ic = smchaninst(chan)
 % get instrument and instrument channel index for channel chan.
 % use smprintchannels to display information.
 

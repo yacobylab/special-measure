@@ -1,5 +1,5 @@
 function smprintrange(ch)
-% smprintrange(ch)
+% function smprintrange(ch)
 % 
 % Print limit and rate information about channels ch (Default all).
 

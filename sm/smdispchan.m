@@ -1,5 +1,5 @@
 function smdispchan(chan, data)
-
+% function smdispchan(chan, data)
 global smdata;
 
 if ishandle(999)

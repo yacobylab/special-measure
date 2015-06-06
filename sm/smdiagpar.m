@@ -1,5 +1,5 @@
 function scan = smdiagpar(scan, angle, cntr, loops)
-% smdiagpar(scan, angle, cntr, loops)
+% function scan = smdiagpar(scan, angle, cntr, loops)
 % configure scan rotation by angle, followed by shift to cntr.
 % loops specifies to which loops to apply the operation. Default is the
 % two innermost loops. 

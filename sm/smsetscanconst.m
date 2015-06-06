@@ -1,5 +1,5 @@
 function out = smsetscanconst(scan,constant,value)
-% scan = smsetscansonts(scan,constantname,value)
+% function out = smsetscansonts(scan,constantname,value)
 % sets the value of 'constant' in scan, returns new scan
 
 for i=1:length(scan.consts)

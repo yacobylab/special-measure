@@ -1,5 +1,5 @@
 function smprintf(inst, fmt, varargin)
-% smprintf(inst, fmt, varargin)
+% function smprintf(inst, fmt, varargin)
 %
 % Call fprintf with same arguments on instrument inst.
 

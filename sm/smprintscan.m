@@ -1,5 +1,5 @@
 function smprintscan(scan)
-% smprintscan(scan)
+% function smprintscan(scan)
 
 global smdata;
 

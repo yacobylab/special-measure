@@ -1,5 +1,5 @@
 function inst = sminstlookup(dev)
-% inst = sminstlookup(dev)
+% function inst = sminstlookup(dev)
 % Convert instrument name dev to index. Dev can be either the device (must be unique) or
 % name of the instrument.
 

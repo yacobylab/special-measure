@@ -1,5 +1,5 @@
 function data = smget(channels)
-% data = smget(channels)
+% function data = smget(channels)
 % 
 % Get current values of channels.
 % channels can be a cell or char array with channel names, or a vector

@@ -1,5 +1,5 @@
 function data = smrun(scan, filename)
-% data = smrun(scan, filename)
+% function data = smrun(scan, filename)
 % data = smrun(filename) will assume scan = smscan
 %
 % scan: struct with the following fields:

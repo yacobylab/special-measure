@@ -1,6 +1,7 @@
 function lognote(str)
-% lognote(str)
+% function lognote(str)
 % write a note to logfile 
+
 
 global loginfo;
 

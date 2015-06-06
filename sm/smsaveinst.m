@@ -1,5 +1,5 @@
 function smsaveinst(ind)
-% smsaveinst(ind)
+% function smsaveinst(ind)
 % Export insts from current rack into separate files after stripping
 % data.inst if present. Instrument information is saved in a driver independent 
 % format for serial, gpib and visa-tcpip instruments.

@@ -1,6 +1,11 @@
 function logadd(index, varargin)
-% logadd(index, str, varargin)
-% add line to logfile, continuing last entry
+% function logadd(index, varargin)
+% add string to logfile, continuing last entry
+%if the "index" is not given, it writes to the general file (index = 1)
+% if you give more than 2 arguments, remaining args will be used as
+% variables in string. 
+
+
 
 global loginfo;
 

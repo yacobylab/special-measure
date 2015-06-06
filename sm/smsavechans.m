@@ -1,5 +1,5 @@
 function smsavechans(file)
-% smsavechans(file)
+% function smsavechans(file)
 % save all channels from smdata to file.
 
 global smdata;

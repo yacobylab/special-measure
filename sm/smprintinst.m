@@ -1,5 +1,5 @@
 function smprintinst(inst)
-% smprintinst(inst)
+% function smprintinst(inst)
 %
 % Print information about instruments inst (Default all).
 % If inst is a single instrument, the avialable channels are printed.

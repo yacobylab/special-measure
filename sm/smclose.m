@@ -1,5 +1,5 @@
 function smclose(inst)
-% smclose(inst)
+% function smclose(inst)
 % Closes smdata.inst(i).data.inst for all i in inst, if defined.
 % Default is to try to close all instruments.
 

@@ -1,5 +1,5 @@
 function smflush(inst)
-% smflush(inst)
+% function smflush(inst)
 % Read data from smdata.inst(i).data.inst for all i in inst, if defined,
 % until BytesAvailable is 0.
 % Default is for all instruments.

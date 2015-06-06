@@ -1,4 +1,5 @@
-function chanind = smchanlookup(channels);
+function chanind = smchanlookup(channels)
+% function chanind = smchanlookup(channels)
 % convert channel names to indices
 
 global smdata;

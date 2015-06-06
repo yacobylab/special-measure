@@ -1,5 +1,5 @@
 function sminc(channels, vals,ramprate)
-% sminc(channels, vals)
+% function sminc(channels, vals,ramprate)
 %
 % increment channel values
 

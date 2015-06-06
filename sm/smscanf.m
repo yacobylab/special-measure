@@ -1,5 +1,5 @@
 function val = smscanf(inst, varargin)
-% val = smscanf(inst, fmt);
+% function val = smscanf(inst, varargin);
 %
 % Call fscanf on instrument inst
 

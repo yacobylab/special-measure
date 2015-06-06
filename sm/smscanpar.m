@@ -1,5 +1,5 @@
 function scan = smscanpar(scan, cntr, rng, npoints, loops)
-% scan = smscanpar(scan, cntr, rng, npoints, loops)
+% function  scan = smscanpar(scan, cntr, rng, npoints, loops)
 % Set center, range and number of points for scan.loops(loops).
 % loops defaults to 1:length(cntr).  Empty or omitted arguments are left unchanged.
 % scan.configfn is executed at the end if present and not empty.

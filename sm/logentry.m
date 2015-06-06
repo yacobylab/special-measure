@@ -1,7 +1,9 @@
 function logentry(index, varargin)
-% logentry(index, str, varargin)
-% write entry str to logfile, starting with date if changed and time.
+% function logentry(index, varargin)
+% write entry varargin to logfile, starting with date if changed and time.
 % if the "index" is not given, it writes to the general file (index = 1)
+% if you give more than 2 arguments, remaining args will be used as
+% variables in string. 
 
 global loginfo;
 

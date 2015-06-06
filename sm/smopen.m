@@ -1,5 +1,5 @@
 function smopen(inst)
-% smopen(inst)
+% function smopen(inst)
 % Opens smdata.inst(i).data.inst for all i in inst, if defined.
 % Default is to try to open all instruments.
 

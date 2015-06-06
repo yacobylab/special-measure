@@ -1,4 +1,5 @@
 function val = smgetscanconst(scan,constant)
+% function val = smgetscanconst(scan,constant)
 % returns the value of 'constant' from the constants defined in scan
 
 for i=1:length(scan.consts)

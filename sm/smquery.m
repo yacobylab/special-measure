@@ -1,5 +1,5 @@
 function val = smquery(inst, fmt, varargin)
-% smquery(inst, fmt, varargin)
+% function val = smquery(inst, fmt, varargin)
 %
 % Call query on instrument inst
 

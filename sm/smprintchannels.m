@@ -1,5 +1,5 @@
 function smprintchannels(ch)
-% smprintchannels(ch)
+% function smprintchannels(ch)
 %
 % Print information about channels ch (Default all).
 
