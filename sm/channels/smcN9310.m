@@ -1,5 +1,6 @@
 function val = smcN9310(ic, val, rate)
 % 1: freq, 2: power
+% Agilent RF signal generator
 % this is identical in principle to the HP1000A, but seems to require a 
 % somewhat more strict interpretation of the SCPI instruction set.
 

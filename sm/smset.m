@@ -2,20 +2,26 @@ function smset(channels, vals, ramprate)
 % function smset(channels, vals, ramprate)
 %
 % Set channels to vals.
-% channels can be a cell or char array with channel names, or a vector
+% Channels can be a cell or char array with channel names, or a vector
 % with channel numbers.
 % vals is a vector with one element for each channel.
 % ramprate is used instead of instrument default if given, finite,     
 % and smaller than default. A negative ramprate prevents
-% waiting for ramping to finish for self ramping channels (type = 1).
-% (This faeature is mainly used by smrun).
+% waiting for ramping to finish for self ramping channels (smdata.inst type = 1).
+% (This feature is mainly used by smrun).
+% After checking that vals and ramprates given are within bounds of
+% rangeramp, divides channels into stepchans, setchans, rampchans. 
+% setchans have infinite ramprate and are just to set to final value. 
+% stepchans are stepped every 10 ms to final value, waiting correct time
+% for ramprate. 
+% rampchans have ramping done by the driver. If a negative ramprate is
+% given, note that 
+
 global smdata;
 
 if isempty(channels) 
     return
 end
-
-dt = .01;
 
 if ~isnumeric(channels)
     channels = smchanlookup(channels);
@@ -23,12 +29,12 @@ end
 
 nchan = length(channels);
 
-if size(vals, 2) > 1
+if size(vals, 2) > 1 %use vertical list of channels. 
     vals = vals';
 end
 % could make some variables persistent and add recycling flag argument.
 
-if length(vals) == 1
+if length(vals) == 1 %if many channels and one value given, all get same value. 
     vals = vals * ones(nchan, 1);
 end
 
@@ -36,58 +42,63 @@ end
 rangeramp = vertcat(smdata.channels(channels).rangeramp);
 instchan = vertcat(smdata.channels(channels).instchan);
 
-if nargin >= 3 %&& ~isempty(ramprate)
+% if ramprate given: 
+if exist('ramprate','var') && ~isempty(ramprate)
     if size(ramprate, 2) > 1
         ramprate = ramprate';
     end
 
-    if length(ramprate) == 1
+    if length(ramprate) == 1 % if many channels and one ramprate given, all get same ramprate. 
         ramprate = ramprate * ones(nchan, 1);
     end
 
+    % check that finite ramprates are smaller than the max given by
+    % rangeramp.  
+    % Doesn't look like it works for selframping. 
     mask = isfinite(ramprate);
     if any(mask)
-        rangeramp(mask, 3) = min(ramprate(mask), rangeramp(mask, 3));
+        autoramp = sign(ramprate); 
+        ramprate = min(abs(ramprate(mask)), rangeramp(mask, 3));       
+        ramprate = autoramp * ramprate; % Keep sign for autoramp. 
     end
 end
 
-%limits & conversion factor
+% Check that the vals are within rangeramp limits. 
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
 
-vals2 = vals .* rangeramp(:, 4);
-rangeramp(:, 3) = rangeramp(:, 3) .* rangeramp(:, 4);
+valsScaled = vals .* rangeramp(:, 4); % scale vals by multiplier 
+ramprate = ramprate .* rangeramp(:, 4); % scale ramprate by multiplier
 
-curr = zeros(nchan, 1);
+currVals = zeros(nchan, 1);
 chantype = zeros(nchan, 1);
 ramptime = zeros(nchan, 1);
 
+% Check which channels can be ramped - chantype = 1 is ramping. 
 for k = 1:nchan
     chantype(k) = smdata.inst(instchan(k, 1)).type(instchan(k, 2));
 end
 
-% channels to ramp.
+rampchan = find(isfinite(ramprate)& chantype == 1);
+stepchan = find(isfinite(ramprate) & chantype == 0);
 
-rampchan = find(isfinite(rangeramp(:, 3))& chantype == 1);
-stepchan = find(isfinite(rangeramp(:, 3)) & chantype == 0);
-
-if any(rangeramp(stepchan, 3) < 0)
+if any(ramprate(stepchan) < 0)
     error('Negative ramp rate for step channel.');
 end
     
-setchan = find(~isfinite(rangeramp(:, 3)));
+setchan = find(~isfinite(ramprate));
 
 % get current val for step channels
 for k = stepchan'
-    curr(k)= smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 0]);
+    currVals(k)= smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 0]);
 end
 
 % start ramps
 for k = rampchan' 
-    ramptime(k) = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], vals2(k), rangeramp(k, 3));
+    ramptime(k) = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k), ramprate(k));
 end
 
 for k = setchan'    
-    smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], vals2(k));
+    smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
 
 tramp = now;
@@ -96,23 +107,27 @@ if ishandle(999)
     smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));
 end
 
-% step channels
+dt = .01;
+% step channels - the ramprate is maintained by smset, not through control
+% function. 
 if ~isempty(stepchan)
-    rangeramp(stepchan, 3) = dt * rangeramp(stepchan, 3) .* (2 * (vals2(stepchan) > curr(stepchan)) - 1);
-    nstep = floor((vals2(stepchan)-curr(stepchan))./rangeramp(stepchan, 3));
-    for l = 1:max(nstep)
+    dirStep = (2 * (valsScaled(stepchan) > currVals(stepchan)) - 1); % direction of step. (final value > init, dirStep = 1)
+    sizeStep = dt * ramprate(stepchan) .* dirStep; 
+    nstep = floor((valsScaled(stepchan)-currVals(stepchan))./sizeStep);
+    for i = 1:max(nstep)
         tstep = now;
-        curr = curr + rangeramp(:, 3);        
-        for k = stepchan(l <= nstep)';
-            smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], curr(k));
+        currVals = currVals + sizeStep;        
+        for k = stepchan(i <= nstep)'; % chans that haven't reach final value
+            smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], currVals(k));
         end
         
-        if ishandle(1001) && ~mod(l, 10)
-            smdispchan(channels(stepchan(l <= nstep)), curr(stepchan(l <= nstep))...
-                ./rangeramp(stepchan(l <= nstep), 4));
+        % update the display every 10 steps. 
+        if ishandle(1001) && ~mod(i, 10)
+            smdispchan(channels(stepchan(i <= nstep)), currVals(stepchan(i <= nstep))...
+                ./rangeramp(stepchan(i <= nstep), 4));
         end
 
-        % wait
+        % wait until dt is reached to maintain ramprate. 
         while (now - tstep) * 24 * 3600 < dt ;end
         
         if ishandle(1000) 
@@ -124,29 +139,34 @@ if ~isempty(stepchan)
     end
 end
 
-% set exact target value 
+%After the last step, set channels to exact final value. 
 for k = stepchan'    
-    smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], vals2(k));
+    smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
+
 if ishandle(999)
     smdispchan(channels(stepchan), vals(stepchan));
 end
-
 smdata.chanvals(channels) = vals;
 
-rampchan = rampchan(rangeramp(rampchan, 3) > 0);
+
+% rampchans let the driver do the ramping, but don't return until correct
+% time has passed. 
+rampchan = rampchan(ramprate(rampchan, 3) > 0); % For rampchans with ramprate < 0, the driver will ramp. 
 ramptime = ramptime(rampchan);
 if ~isempty(rampchan)
-    pause(max(ramptime) + 24*3600*(tramp - now));
+    pause(max(ramptime) + 24*3600*(tramp - now)); 
     return; 
-    [ramptime, ind] = sort(ramptime, 'descend');
-    for k = rampchan(ind)'       
-        t = Inf;
-        while t > 0
-            t = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 2], [], rangeramp(k, 3));
-            pause(0.8 * t);
-        end
-    end
+    % Next lines appear to use different method, querying the remainder of
+    % ramping time through driver. However, not currently used. 
+    %[ramptime, ind] = sort(ramptime, 'descend'); 
+    %for k = rampchan(ind)'       
+    %   t = Inf;
+    %    while t > 0
+    %        t = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 2], [], rangeramp(k, 3));
+    %        pause(0.8 * t);
+    %    end
+    %end
 end
 
 end

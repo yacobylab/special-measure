@@ -25,7 +25,7 @@ if strfind(cntrl, 'fast')
         loop = 1;
     end
 else
-    loop = 2; 
+    loop = 2; % we should be able to specify this with loop. 
 
     setic = smchaninst(scan.loops(1).setchan);
     if nargin >= 4
