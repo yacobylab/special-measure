@@ -19,5 +19,5 @@ for i = inst;
     fprintf(fmt, i, smdata.inst(i).device, smdata.inst(i).name);
 end
 if length(inst) == 1
-    disp(strvcat(smdata.inst(i).channels));
+    disp(char(smdata.inst(i).channels));
 end

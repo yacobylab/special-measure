@@ -415,7 +415,7 @@ for i = 1:length(disp)
         if dataloop(dc) - ndim(dc) < 0
 %            y = [1, datadim(dc, ndim(dc)-1)];  % Not sure what this was
 %            supposed to do.
-            y = [1:datadim(dc, ndim(dc)-1)];
+            y = 1:datadim(dc, ndim(dc)-1);
             ylab = 'n';
         else
             y = scandef(dataloop(dc) - ndim(dc) + 1).rng;
@@ -577,7 +577,11 @@ for i = 1:totpoints
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
         
-        if debug  sz=size(newdata); celldisp(mat2cell(sz)); fprintf('newdata size \n'); end %disp is overwritten in smrun.
+        if debug  
+            sz=size(newdata);
+            celldisp(mat2cell(sz));
+            fprintf('newdata size \n');
+        end %disp is overwritten in smrun.
         
         if isfield(scandef, 'postfn')
             fncall(scandef(j).postfn, xt);

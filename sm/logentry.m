@@ -11,7 +11,7 @@ if isempty(loginfo)
     return;
 end
 
-if isstr(index) 
+if ischar(index) 
     str = index;
     index = 1;
 else

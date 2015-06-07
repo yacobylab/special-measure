@@ -19,7 +19,9 @@ end
 chanind = zeros(length(channels), 1);
 
 for i = 1:length(channels)
-    m = strmatch(channels{i}, strvcat(smdata.channels.name), 'exact');
+    m = find(strcmp(channels{i}, cellstr(char(smdata.channels.name))));
+    %replaces: 
+    %m = strmatch(channels{i}, strvcat(smdata.channels.name) ,'exact'); 
     if(isempty(m))
         error(sprintf('Unable to find sm channel "%s"\n',channels{i}));
     else

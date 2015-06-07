@@ -12,7 +12,7 @@ inst = sminstlookup(inst);
 
 for i = inst
     if isfield(smdata.inst(i), 'data') && isfield(smdata.inst(i).data, 'inst') 
-        if strmatch('closed',smdata.inst(i).data.inst.Status)
+        if strcmpi('closed',smdata.inst(i).data.inst.Status)
             fopen(smdata.inst(i).data.inst);
         end
     end
