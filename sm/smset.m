@@ -54,20 +54,21 @@ if exist('ramprate','var') && ~isempty(ramprate)
 
     % check that finite ramprates are smaller than the max given by
     % rangeramp.  
-    % Doesn't look like it works for selframping. 
     mask = isfinite(ramprate);
     if any(mask)
         autoramp = sign(ramprate); 
-        ramprate = min(abs(ramprate(mask)), rangeramp(mask, 3));       
-        ramprate = autoramp * ramprate; % Keep sign for autoramp. 
+        rangeramp(mask,3) = min(abs(ramprate(mask)), rangeramp(mask, 3));       
+        rangeramp(mask,3) = autoramp * rangeramp(mask,3); % Keep sign for autoramp. 
     end
 end
+ramprate = rangeramp(:,3); 
 
 % Check that the vals are within rangeramp limits. 
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
 
 valsScaled = vals .* rangeramp(:, 4); % scale vals by multiplier 
 ramprate = ramprate .* rangeramp(:, 4); % scale ramprate by multiplier
+
 
 currVals = zeros(nchan, 1);
 chantype = zeros(nchan, 1);
@@ -78,8 +79,8 @@ for k = 1:nchan
     chantype(k) = smdata.inst(instchan(k, 1)).type(instchan(k, 2));
 end
 
-rampchan = find(isfinite(ramprate)& chantype == 1);
-stepchan = find(isfinite(ramprate) & chantype == 0);
+rampchan = find(chantype == 1);
+stepchan = find(chantype == 0);
 
 if any(ramprate(stepchan) < 0)
     error('Negative ramp rate for step channel.');
@@ -152,7 +153,7 @@ smdata.chanvals(channels) = vals;
 
 % rampchans let the driver do the ramping, but don't return until correct
 % time has passed. 
-rampchan = rampchan(ramprate(rampchan, 3) > 0); % For rampchans with ramprate < 0, the driver will ramp. 
+rampchan = rampchan(ramprate(rampchan) > 0); % For rampchans with ramprate < 0, the driver will ramp. 
 ramptime = ramptime(rampchan);
 if ~isempty(rampchan)
     pause(max(ramptime) + 24*3600*(tramp - now)); 

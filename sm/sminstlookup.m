@@ -26,7 +26,7 @@ for i = 1:length(dev)
     if(isempty(m))
         error(sprintf('Unable to find sm instr "%s"\n',dev{i}));
     else
-        inst = [inst; m'];  
+        inst = [inst; m];  
     end
 end
 
