@@ -23,7 +23,7 @@ for i = 1:length(channels)
     %replaces: 
     %m = strmatch(channels{i}, strvcat(smdata.channels.name) ,'exact'); 
     if(isempty(m))
-        error(sprintf('Unable to find sm channel "%s"\n',channels{i}));
+        error('Unable to find sm channel "%s"\n',channels{i});
     else
         chanind(i) = m;
     end

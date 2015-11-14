@@ -24,7 +24,7 @@ for i = 1:length(dev)
         m = find(strcmp(dev{i}, cellstr(char(smdata.inst.device))));        
     end
     if(isempty(m))
-        error(sprintf('Unable to find sm instr "%s"\n',dev{i}));
+        warning(sprintf('Unable to find sm instr "%s"\n',dev{i}));
     else
         inst = [inst; m];  
     end

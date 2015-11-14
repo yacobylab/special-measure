@@ -278,6 +278,8 @@ switch ico(3)
                 %return code
                 pbuffer = calllib('ATSApi', 'AlazarAllocBufferU16', smdata.inst(ico(1)).data.handle, samplesPerBuffer);
                 if pbuffer == 0
+                pbuffer = daqfn('AllocBufferU16', smdata.inst(ico(1)).data.handle, samplesPerBuffer);
+
                     fprintf('failed to alloc buffer %i\n',i)
                     error('Error: AlazarAllocBufferU16 %u samples failed\n', samplesPerBuffer);
                 end

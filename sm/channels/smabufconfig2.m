@@ -1,72 +1,77 @@
-function scan = smabufconfig2(scan, cntrl, getchanInd, config, loop)
+function scan = smabufconfig2(scan, ctrl, getchanInd, config, loop)
 % scan = smabufconfig2(scan, cntrl, getrng, setrng, loop)
-% Configure buffered acquisition for fastest loop using drivers. 
+% Configure buffered acquisition for fastest loop using drivers. Usually
+% used as configfn. 
 % Supersedes smarampconfig/smabufconfig if driver provides this
 % functionality.
+% Typically includes triggering, arming, and configuring. Flow is: 
+% At beginning of scan, when smabufconfig called, call cntrlfn with op 5 to
+% configure the readout. At beginning of each outer loop point (loop with
+% getchan), instrument armed. On first point of each inner loop point,
+% instrument triggered along w/ setchans that ramp. 
 %
-% cntrl: trig : use smatrigfn for triggering
-%         arm : use smatrigfn to arm insts in loops(2).prefn(1)
-%         fast: change behavior to not use rate and time of first loop.
-%               Instead, setrng = [npts, rate, nrec(optional)], loop = loop to be used (default = 1)     
-%         end
-% getrng: indices to loops(2).getchan to be programmed (and armed/triggered).
-% For fast, config is just an array of numbers, otherwise it is indeices of setchans to trigger.   
+% ctrl:  trig : use smatrigfn for triggering
+%         arm : use smatrigfn to arm insts in loops(2).prefn(1) using arg 4
+%         of ctrl function
+%         fast: Acquire buffered date in 1st loop. Hence, don't use rate and time of first loop for
+%         timing. Config gives  [npts, rate, nrec(optional)]
+%         end: when used with arm, arm in a new prefn in the readout loop.
+%         Otherwise uses the first one. 
+% getchanInd: indices to loops(2).getchan that do buffered readout (and must be armed, triggered). 
+% Config: indices of setchans in inner loop to trigger, unless 'fast' (see above). 
+% loop to perform buffered readout on. Default readout loop is 2, unless 'fast' given, in which case loop is 1. 
 % Possible extensions (not implemented): 
 % - configure decimation (see smarampconfig for code)
 
 global smdata;
 
 
-if nargin < 2 
-    cntrl = '';
+if ~exist('ctrl','var')
+    ctrl = '';
 end
 
-% Set loops. 
-if strfind(cntrl, 'fast')
-    if nargin < 5
+% Set which loop is used for readout
+if strfind(ctrl, 'fast')
+    if ~exist('loop','var') || isempty(loop)
         loop = 1;
     end
 else
-    if nargin < 5 
+    if ~exist('loop','var') || isempty(loop)
         loop = 2; 
     end
     if loop == 1 
         error('Need to use fast control if you want readout in first loop')
     end
-
     setic = smchaninst(scan.loops(loop-1).setchan);
-    if nargin >= 4
+    if exist('config','var') && ~isempty(config)
         setic = setic(config, :);
     end
-
 end
 
 % Only select getchans with index getchanInd. 
 getic = smchaninst(scan.loops(loop).getchan);
-if nargin >= 3 && getchanInd ~= 0 
+if exist('getchanInd','var') && ~isempty(getchanInd) && getchanInd ~= 0 
    getic = getic(getchanInd, :);
 end
 
-if strfind(cntrl, 'fast')
+if strfind(ctrl, 'fast')
     for i = 1:size(getic, 1)
         args = num2cell(config);
         [config(1), config(2)] = smdata.inst(getic(i, 1)).cntrlfn([getic(i, :), 5], args{:});
     end
 else
-    for i = 1:size(getic, 1)
-        [scan.loops(loop-1).npoints, rate] = smdata.inst(getic(i, 1)).cntrlfn([getic(i, :), 5], scan.loops(loop-1).npoints, ...
-            1/abs(scan.loops(loop-1).ramptime));
+    for i = 1:size(getic, 1)        
+        [scan.loops(loop-1).npoints, rate] = smdata.inst(getic(i, 1)).cntrlfn([getic(i, :), 5], scan.loops(loop-1).npoints, 1/abs(scan.loops(loop-1).ramptime));        
         scan.loops(loop-1).ramptime = sign(scan.loops(loop-1).ramptime)/abs(rate);
-    end
-    
-    if strfind(cntrl, 'trig')
+    end    
+    if strfind(ctrl, 'trig')
         scan.loops(loop-1).trigfn.fn = @smatrigfn;
         scan.loops(loop-1).trigfn.args = {[setic; getic]};
     end
 end
 
-if strfind(cntrl, 'arm')
-    if strfind(cntrl,'end') % bad hack, need to fix this
+if strfind(ctrl, 'arm')
+    if strfind(ctrl,'end') % bad hack, need to fix this
       scan.loops(loop).prefn(end).fn = @smatrigfn;
       scan.loops(loop).prefn(end).args = {getic, 4};  
     else

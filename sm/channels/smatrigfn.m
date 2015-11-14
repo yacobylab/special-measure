@@ -7,10 +7,11 @@ function smatrigfn(inst, inst2, op)
 
 global smdata;
 
-if nargin < 3
+if ~exist('op','var') || isempty(op)
     op = 3;
 end
-if nargin > 1
+
+if exist('inst2','var') && ~isempty(inst2)
     inst = inst2;
 end
 

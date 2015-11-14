@@ -10,7 +10,7 @@ end
 
 inst = sminstlookup(inst);
 
-for i = inst
+for i = inst'
     if isfield(smdata.inst(i), 'data') && isfield(smdata.inst(i).data, 'inst')
         fclose(smdata.inst(i).data.inst);
     end
