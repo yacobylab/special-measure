@@ -58,7 +58,7 @@ if exist('ramprate','var') && ~isempty(ramprate)
     if any(mask)
         autoramp = sign(ramprate); 
         rangeramp(mask,3) = min(abs(ramprate(mask)), rangeramp(mask, 3));       
-        rangeramp(mask,3) = autoramp * rangeramp(mask,3); % Keep sign for autoramp. 
+        rangeramp(mask,3) = autoramp .* rangeramp(mask,3); % Keep sign for autoramp. 
     end
 end
 ramprate = rangeramp(:,3); 

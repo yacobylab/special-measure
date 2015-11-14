@@ -1,0 +1,6 @@
+Becuase Vaunix has their heads too far up their a**s to provide a 64 bit DLL, we now bypass their DLL entirely and talk to the labbrick directly.  
+We use HIDAPI to do this because directly using microsofts HID DLL is quite complex, esp. from MATLAB.
+
+See http://www.signal11.us/oss/hidapi/
+
+n.b. ; we provide pre-compiled 32 and 64 bit versions of the library here.

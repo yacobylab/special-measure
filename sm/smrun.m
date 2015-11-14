@@ -104,11 +104,15 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
     smset(setchans, setvals);
 end
 
+buff = 0; 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
-    end
+        buff = buff + ~isempty(strfind(func2str(scan.configfn(i).fn),'smabufconfig2'));  % check if buffered readout being used. 
+    end    
 end
+
+
 
 scandef = scan.loops;
 
@@ -138,6 +142,9 @@ for i=1:length(scandef)
         end
     end
 end
+
+% Check if ramprates too large 
+
 
 if ~isfield(scandef, 'npoints')
     [scandef.npoints] = deal([]);
@@ -301,7 +308,7 @@ datadim = zeros(sum(ngetchan), 5); % size of data read each time
 data = cell(1, sum(ngetchan));
 ndim = zeros(1, sum(ngetchan)); % dimension of data read each time
 dataloop = zeros(1, sum(ngetchan)); % loop in which each channel is read
-disph = zeros(1, sum(ngetchan));
+disph = gobjects(1, sum(ngetchan));
 ramprate = cell(1, nloops);
 tloop = zeros(1, nloops);
 getch = vertcat(scandef.getchan);
@@ -523,6 +530,9 @@ for i = 1:totpoints
                 % procedure only makes sense if the loop is not mixed
                 % with any faster loop by the global transformations.
                 % Should not be a major limitation.
+                if isfield(scandef(j),'settle') && ~isempty(scandef(j).settle)
+                    pause(scandef(j).settle)
+                end
                 x2 = x;
                 x2(j) = scandef(j).rng(end);
                 %x2 = fliplr(x2);
@@ -540,6 +550,7 @@ for i = 1:totpoints
                 if any(autochan)
                     smset(scandef(j).setchan(autochan), val2(autochan), ramprate{j}(autochan));
                 end
+
             end
             tloop(j) = now;
         elseif ~all(autochan)
@@ -633,11 +644,13 @@ for i = 1:totpoints
                 z = zeros(dim(end-1:end));
                 z(:, :) = subsref(data{dc}, s2);
                 set(disph(k), 'cdata', z);
+                 if ~isempty(disph(k).CData)                 
+                     disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                 end                    
             else                
                 set(disph(k), 'ydata', subsref(data{dc}, s2));
             end
-            drawnow;
-
+            drawnow;            
         end
 
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
