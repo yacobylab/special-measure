@@ -512,14 +512,10 @@ for i = 1:totpoints
         xt = trafocall(scan.trafofn(k), xt);
     end
 
-    for j = fliplr(loops(~isdummy(loops) | count(loops)==1))
-        % exclude dummy loops with nonzero count
-        val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);
-        
+    for j = fliplr(loops(~isdummy(loops) | count(loops)==1)) % exclude dummy loops after first point 
+        val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);        
         autochan = scandef(j).ramptime < 0;
         scandef(j).ramptime(autochan) = min(scandef(j).ramptime(autochan));
-        % this is a bit of a hack
-        
         % alternative place to call prefn
         
         % set autochannels and program ramp only at first loop point
@@ -535,7 +531,6 @@ for i = 1:totpoints
                 end
                 x2 = x;
                 x2(j) = scandef(j).rng(end);
-                %x2 = fliplr(x2);
                 for k = 1:length(scan.trafofn)
                     x2 = trafocall(scan.trafofn(k), x2);
                 end
