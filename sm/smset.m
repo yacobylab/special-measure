@@ -99,7 +99,7 @@ for k = rampchan'
 end
 
 for k = setchan'    
-    smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
+   smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
 
 tramp = now;
