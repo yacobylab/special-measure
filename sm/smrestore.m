@@ -26,3 +26,6 @@ if exist('ramprate','var')
 else
     smset(configch, configvals);
 end
+    fprintf('Restored to file %s \n',file); 
+
+end

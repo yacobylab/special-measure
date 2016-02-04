@@ -104,13 +104,13 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
     smset(setchans, setvals);
 end
 
-buff = 0; 
+% buff = 0; 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
-        scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
-        buff = buff + ~isempty(strfind(func2str(scan.configfn(i).fn),'smabufconfig2'));  % check if buffered readout being used. 
-    end    
-end
+         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
+%         buff = buff + ~isempty(strfind(func2str(scan.configfn(i).fn),'smabufconfig2'));  % check if buffered readout being used. 
+     end    
+ end
 
 
 
@@ -526,7 +526,7 @@ for i = 1:totpoints
                 % procedure only makes sense if the loop is not mixed
                 % with any faster loop by the global transformations.
                 % Should not be a major limitation.
-                if isfield(scandef(j),'settle') && ~isempty(scandef(j).settle)
+                if isfield(scandef(j),'settle') && ~isempty(scandef(j).settle) && scandef(j).settle ~= 0
                     pause(scandef(j).settle)
                 end
                 x2 = x;
@@ -554,21 +554,23 @@ for i = 1:totpoints
         end
         
         % prolog functions
-        if isfield(scandef, 'prefn')
+        if isfield(scandef, 'prefn') && ~isempty(scandef(j).prefn)
             fncall(scandef(j).prefn, xt);
         end              
 
-        tp=(tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime));        
-        pause(tp);  % Pause always waits 10ms
+        tp=(tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime)); 
+        if ~isfield(scandef(j),'stream') || isempty(scandef(j).stream) || ~scandef(j).stream
+            pause(tp);  % Pause always waits 10ms
+        end
         
         % if the field 'waittime' was in scan.loops(j), then wait that
         % amount of time now
-        if isfield(scandef,'waittime')
+        if isfield(scandef,'waittime') && ~isempty(scandef(j).waittime) && scandef(j).waittime ~= 0
             pause(scandef(j).waittime)
         end
         
         % trigger after waiting for first point.
-        if count(j) == 1 && isfield(scandef, 'trigfn')
+        if count(j) == 1 && isfield(scandef, 'trigfn') && ~isempty(scandef(j).trigfn)
             fncall(scandef(j).trigfn);
         end
 
@@ -638,12 +640,15 @@ for i = 1:totpoints
                 dim = size(data{dc});
                 z = zeros(dim(end-1:end));
                 z(:, :) = subsref(data{dc}, s2);
-                set(disph(k), 'cdata', z);
-                 if ~isempty(disph(k).CData)                 
-                     disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
-                 end                    
+                set(disph(k), 'CData', z);
+                  if ~isempty(disph(k).CData)
+                      rng = [min(disph(k).CData(:)), max(disph(k).CData(:))]; 
+                      if ~(diff(rng)==0)
+                      disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                      end
+                  end                    
             else                
-                set(disph(k), 'ydata', subsref(data{dc}, s2));
+                set(disph(k), 'YData', subsref(data{dc}, s2));
             end
             drawnow;            
         end
@@ -656,14 +661,13 @@ for i = 1:totpoints
             fncall(scandef(j).datafn, xt, data);
         end
 
-        
-        %fprintf('Start %.3f  Set %.3f  Read: %.3f  Proc: %.3f\n', [t(1), diff(t)]);
     end
     %update counters
     count(loops(1:end-1)) = 1;
     count(loops(end)) =  count(loops(end)) + 1;
 
-    if get(figurenumber, 'CurrentCharacter') == char(27)
+     figChar = get(figurenumber,'CurrentCharacter'); 
+    if figChar == char(27)
         if isfield(scan, 'cleanupfn')
             for k = 1:length(scan.cleanupfn)
                 scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
@@ -678,7 +682,7 @@ for i = 1:totpoints
         return;
     end
         
-    if get(figurenumber, 'CurrentCharacter') == ' '
+    if figChar == ' '
         set(figurenumber, 'CurrentCharacter', char(0));
         fprintf('Measurement paused. Type ''return'' to continue.\n')
         evalin('base', 'keyboard');                

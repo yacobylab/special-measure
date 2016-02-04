@@ -5,9 +5,8 @@ function [val, rate] = smcSR830(ic, val, rate, ctrl)
 % 1: X, 2: Y, 3: R, 4: Theta, 5: freq, 6: ref amplitude
 % 7:10: AUX input 1-4, 11:14: Aux output 1:4
 % 15,16: stored data, length determined by datadim
-% 17: sensitivity
-% 18: time constant
-% 19: sync filter on/off
+% 17: sensitivity 
+% 18: overload 
 
 global smdata;
 

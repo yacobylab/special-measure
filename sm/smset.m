@@ -56,7 +56,7 @@ if exist('ramprate','var') && ~isempty(ramprate)
     % rangeramp.  
     mask = isfinite(ramprate);
     if any(mask)
-        autoramp = sign(ramprate); 
+        autoramp = sign(ramprate);         
         rangeramp(mask,3) = min(abs(ramprate(mask)), rangeramp(mask, 3));       
         rangeramp(mask,3) = autoramp .* rangeramp(mask,3); % Keep sign for autoramp. 
     end
@@ -64,7 +64,12 @@ end
 ramprate = rangeramp(:,3); 
 
 % Check that the vals are within rangeramp limits. 
-vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
+startVals = vals;
+vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1)); 
+if ~all(startVals==vals)
+    warning('setval outside rangeramp limit. Setting to max/min \n'); 
+end
+
 
 valsScaled = vals .* rangeramp(:, 4); % scale vals by multiplier 
 ramprate = ramprate .* rangeramp(:, 4); % scale ramprate by multiplier
@@ -79,14 +84,18 @@ for k = 1:nchan
     chantype(k) = smdata.inst(instchan(k, 1)).type(instchan(k, 2));
 end
 
-rampchan = find(chantype == 1);
-stepchan = find(chantype == 0);
+rampchan = find(isfinite(ramprate) & chantype == 1);
+stepchan = find(isfinite(ramprate) & chantype == 0);
+setchan = find(~isfinite(ramprate));
 
+if isempty(stepchan)
+    stepchan =[];
+end
 if any(ramprate(stepchan) < 0)
     error('Negative ramp rate for step channel.');
 end
     
-setchan = find(~isfinite(ramprate));
+
 
 % get current val for step channels
 for k = stepchan'

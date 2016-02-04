@@ -5,7 +5,7 @@ function smundo()
 
 global smn_lastfile;
 if ~exist(smn_lastfile,'file')
-    error('File ''%s'' does not exist',smn_lastfile);
+    warning('File ''%s'' does not exist',smn_lastfile);
 end
 
 s=input(sprintf('Delete "%s"? (Y/N)',smn_lastfile),'s');

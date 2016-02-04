@@ -13,5 +13,5 @@ switch ic(3)
     case 0
         val = smdata.inst(ic(1)).data.val(ic(:, 2));
     otherwise
-        error('Operation not supported');
+        warning('Operation not supported');
 end
