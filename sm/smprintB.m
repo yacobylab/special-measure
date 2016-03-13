@@ -23,23 +23,32 @@ if isfield(scan,'configfn')&&~isempty(scan.configfn)
     for i = 1:length(scan.configfn) 
         fprintf('    %g: fn: %s, args: ',i,func2str(scan.configfn(i).fn)) 
         for j = 1:length(scan.configfn(i).args)
-            fprintf('%g ',scan.configfn(i).args{j}); 
+            if ischar(scan.configfn(i).args{j})
+            fprintf('%s ',scan.configfn(i).args{j}); 
+            else
+                fprintf('%g ',scan.configfn(i).args{j}); 
+            end
         end
         fprintf('\n')
     end
 end
-
+try
 if isfield(scan,'cleanupfn')&&~isempty(scan.cleanupfn) 
     fprintf('cleanupfn: \n') 
     for i = 1:length(scan.cleanupfn) 
         fprintf('    %g: fn: %s, args: ',i,func2str(scan.cleanupfn(i).fn)) 
         for j = 1:length(scan.cleanupfn(i).args)
-            fprintf('%g ',scan.cleanupfn(i).args{j}); 
+            if ischar(scan.cleanupfn(i).args{j})
+                fprintf('%s ',scan.cleanupfn(i).args{j}); 
+            else 
+                fprintf('%g ',scan.cleanupfn(i).args{j}); 
+            end
+            
         end
         fprintf('\n')
     end
 end
-
+end
 
 if isfield(scan,'disp')&&~isempty(scan.disp) 
     fprintf('Display: \n' )
@@ -50,6 +59,9 @@ if isfield(scan,'disp')&&~isempty(scan.disp)
 end
 
 if isfield(scan,'saveloop')&&~isempty(scan.saveloop)
+    if length(scan.saveloop) == 1 
+        scan.saveloop(2) = 1; 
+    end
     fprintf('Saves every %g points in loop %g \n', scan.saveloop(2),scan.saveloop(1)); 
 end
 
@@ -103,7 +115,9 @@ for i = 1:length(scan.loops)
     end
       
     fprintf('\n');
-    scanfn(scan,'trafo',i)
+    try
+    scanfn(scan,i);
+    end
     if isfield(scan.loops(i),'prefn')&&~isempty(scan.loops(i).prefn)
         fprintf('prefn: \n')
         for k = 1:length(scan.loops(i).prefn)

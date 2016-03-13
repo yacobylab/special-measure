@@ -1,4 +1,4 @@
-function smatrigfn(inst, inst2, op)
+function smatrigfn(inst,inst2,  op)
 % smatrigfn(inst, inst2, op)
 % inst is a n x 2 matrix containing an instrument and channel index
 % for a channel to be triggered in each row.
@@ -13,6 +13,10 @@ end
 
 if exist('inst2','var') && ~isempty(inst2)
     inst = inst2;
+end
+
+if ischar(inst)
+    inst = sminstlookup(inst);
 end
 
 for i = 1:size(inst, 1)

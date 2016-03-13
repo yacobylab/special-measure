@@ -8,5 +8,6 @@ if ishandle(999)
         str{chan(k)} = sprintf('%.5g', data(k));       
     end
     set(smdata.chandisph, 'string', str);    
-    drawnow;
+
+%    drawnow;
 end

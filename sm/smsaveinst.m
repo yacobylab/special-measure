@@ -1,4 +1,4 @@
-function smsaveinst(ind)
+function smsaveinst(ind,opts)
 % function smsaveinst(ind)
 % Export insts from current rack into separate files after stripping
 % data.inst if present. Instrument information is saved in a driver independent 
@@ -6,13 +6,13 @@ function smsaveinst(ind)
 
 global smdata;
 
-if nargin < 1
+if ~exist('ind','var') || isempty(ind)
     ind = 1:length(smdata.inst);
 end
 
 for i = ind
     inst = smdata.inst(i);    
-    inst.name = '';
+    inst.name = ''; %why?
     constructor = [];
     if isfield(inst, 'data') && isfield(inst.data, 'inst') 
         switch class(inst.data.inst)
@@ -38,6 +38,14 @@ for i = ind
         inst.data = rmfield(inst.data, 'inst');
     end
     
-    save(sprintf('sminst_%s', inst.device), 'inst', 'constructor');
+    if isopt(opts,'chan') 
+        chans = findChans('','',i); 
+        channels = smdata.channels(chans); 
+        save(sprintf('sminst_%s', inst.device), 'inst', 'constructor','channels');
+    else
+        save(sprintf('sminst_%s', inst.device), 'inst', 'constructor');
+    end
+    
+    
 end
    

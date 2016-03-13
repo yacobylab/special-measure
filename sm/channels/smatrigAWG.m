@@ -3,6 +3,8 @@ function smatrigAWG(inst)
 %function smatrigAWG(inst)
 if ~exist('inst','var') || isempty(inst)
     inst = sminstlookup('AWG5000'); 
+elseif ischar(inst) 
+    inst = sminstlookup(inst); 
 end
 global smdata;
 

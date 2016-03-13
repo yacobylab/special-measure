@@ -1,4 +1,5 @@
-function smamovechannels(newchan,oldchan) 
+function smamovechannels(oldchan,newchan) 
+% Put oldchan in newchan position.  
 global smdata; 
 dummychan = smdata.channels; 
 newchanlist = smdata.channels; 
