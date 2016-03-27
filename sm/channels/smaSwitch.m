@@ -1,13 +1,16 @@
-function smaSwitch(ico,chanConn,opts)
+function smaSwitch(chanConn,opts)
 %function smaSwitch(ico,chanConn,opts)
+% possible opts: ground, open, print
 global smdata
     if ~exist('opts','var') 
         opts = '';
     end
+    ico = sminstlookup('Switch'); 
     inst = smdata.inst(ico(1)).data.inst; 
     nChan = 4;
     
     if ~isempty(chanConn)
+        chanConntmp = chanConn; chanConn(:,1) = chanConntmp(:,2); chanConn(:,2) = chanConntmp(:,1); 
         chanConnStr = chanConn; 
         if iscell(chanConn)            
             chanConn = lookupSwitch(chanConn,ico(1));

@@ -145,11 +145,11 @@ switch opts
 end
 for i = 1:length(chans)
     magwrite(mag,sprintf(cmd,chans(i)));
-    B{i} = fscanf(mag,'%s');
-    B{i} = sscanf(B{i},[sprintf(cmdForm,chans(i)) ':%fT']);
-    magwrite(mag,'READ:DEV:GRPY:PSU:SIG:PFLD');    
-    B = mat2cell(B);    
+    pause(0.125); 
+    magfield = fscanf(mag,'%s');
+    B(i) = sscanf(magfield,[sprintf(cmdForm,chans(i)) ':%fT']);
 end    
+    %B = mat2cell(B);    
 end
 
 function goNormal(mag)

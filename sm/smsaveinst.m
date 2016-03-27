@@ -9,6 +9,9 @@ global smdata;
 if ~exist('ind','var') || isempty(ind)
     ind = 1:length(smdata.inst);
 end
+if ~exist('opts','var')
+    opts = ''; 
+end
 
 for i = ind
     inst = smdata.inst(i);    

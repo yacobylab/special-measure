@@ -29,7 +29,6 @@ end
 
 rng = smdata.inst(ic(1)).data.rng(floor((ic(2)-1)/2)+1, :);
 
-
 switch ic(3)
     case 1
 

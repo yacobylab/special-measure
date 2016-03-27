@@ -1,4 +1,5 @@
 function config=smaSRS830(ico,config) 
+% possibilities are meas, shield, couple, line, reserve, filter, sync, ref 
 
 global smdata;
 if ischar(ico) || iscell(ico) 

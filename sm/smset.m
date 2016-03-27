@@ -67,7 +67,9 @@ ramprate = rangeramp(:,3);
 startVals = vals;
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1)); 
 if ~all(startVals==vals)
-    warning('setval outside rangeramp limit. Setting to max/min \n'); 
+    if ~smdata.quiet
+        warning('setval outside rangeramp limit. Setting to max/min'); 
+    end
 end
 
 

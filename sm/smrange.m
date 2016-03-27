@@ -1,4 +1,4 @@
-function smrange(chans,rangeVal,rangeInds)
+function smrange(chans,rangeInds,rangeVal)
 % function smrange(chans,rangeVal,rangeInds)
 
 global smdata; 
