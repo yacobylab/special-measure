@@ -1,5 +1,5 @@
-function [data,xt] = smrun(scan, filename)
-% function data = smrun(scan, filename)
+function data = smrunplay(scan, filename)
+% data = smrun(scan, filename)
 % data = smrun(filename) will assume scan = smscan
 %
 % scan: struct with the following fields:
@@ -11,13 +11,15 @@ function [data,xt] = smrun(scan, filename)
 % saveloop: loop in which to save data (default: second fastest)
 % trafofn: list of global transformations.
 % configfn: function struct with elements fn and args.
+%           fn must be function handle, (why:change this) 
+%           args is cell w/ length number of arguments. 
 %            confignfn.fn(scan, configfn.args{:}) is called before all
 %            other operations.
 % cleanupfn; same, called before exiting.
 % figure: number of figure to be plotted on. Uses next available figure
 %         starting at 1000 if Nan. 
 % loops: struct array with one element for each dimension, fields given
-%        below. The first entry is for the fastest, innermost loop
+%        below. The last entry is for the fastest, innermost loop
 %   fields of loops:
 %   rng, 
 %   npoints (empty means take rng as a vector, otherwise rng defines limits)
@@ -65,11 +67,8 @@ function [data,xt] = smrun(scan, filename)
 %     You should have received a copy of the GNU General Public License
 %     along with Special Measure.  If not, see <http://www.gnu.org/licenses/>.
 
-debug=false;
-
 global smdata;
 global smscan;
-
 
 %if no scan is sent to smrun, assume only field is filename
 if ~isstruct(scan) 
@@ -78,12 +77,15 @@ if ~isstruct(scan)
 end
 
  % handle setting up self-ramping trigger for inner loop if none is
- % provided
+ % provided 
+ % Assumes self ramping / no trigger if the ramptime is negative and either
+ % there's no trigfn or the trigfn has field autoset set to true. 
+ %Use smatrigfn 
 if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
                                     isempty(scan.loops(1).trigfn) || ...
                                     (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
-    scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
+    scan.loops(1).trigfn.args{1}=smchaninst(smscan.loops(1).setchan);
 end
 
 % set global constants for the scan, held in field scan.consts
@@ -106,9 +108,9 @@ end
 
 if isfield(scan, 'configfn')
     for i = 1:length(scan.configfn)
-         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
-     end    
- end
+        scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
+    end
+end
 
 scandef = scan.loops;
 
@@ -139,9 +141,6 @@ for i=1:length(scandef)
     end
 end
 
-% Check if ramprates too large 
-
-
 if ~isfield(scandef, 'npoints')
     [scandef.npoints] = deal([]);
 end
@@ -168,11 +167,16 @@ if ~isfield(scan, 'trafofn')
     scan.trafofn = {};
 end
 
+%if nargin < 2
+%    filename = 'data';
+%end
+
 if nargin >= 2 && filename(2)~=':'
     if isempty(filename);
         filename = 'data';
     end
     
+    % relative path
     if all(filename ~= '/')
         filename = sprintf('sm_%s.mat', filename);
     end
@@ -193,7 +197,9 @@ if nargin >= 2 && filename(2)~=':'
     end
 end
 
+%sets the points that determine ramp? 
 for i = 1:nloops
+    % If only have one of npoints, rng, can make up the rest. 
     if isempty(scandef(i).npoints)        
         scandef(i).npoints = length(scandef(i).rng);
     elseif isempty(scandef(i).rng)        
@@ -207,6 +213,7 @@ for i = 1:nloops
     
     scandef(i).setchan = smchanlookup(scandef(i).setchan);
     scandef(i).getchan = smchanlookup(scandef(i).getchan);
+    %simple
     nsetchan(i) = length(scandef(i).setchan);
 
     %procfn defaults
@@ -217,18 +224,28 @@ for i = 1:nloops
     % number of channels saved.
     ngetchan(i) = 0;%length(scandef(i).procfn); 
     
+    %Figure out how many data channels are needed
+    % Also, sets the outdataNum and outdataProc, which specify 
     for j = 1:length(scandef(i).procfn)
         % set ngetchan to largest outdata index or procfn index where outdata not given
         if isfield(scandef(i).procfn(j).fn, 'outdata')
+            % Outdata will create a datachannel at the number outdata, even
+            % if larger than procfns/getchans. 
+         
             ngetchan(i) = max([ngetchan(i), scandef(i).procfn(j).fn.outdata]);
             
             % index lookup from data index to function index
-            nod = length([scandef(i).procfn(j).fn.outdata]);
-            ind = sum(ngetchan(1:i-1)); % data channel index
-
-            odind(:, [scandef(i).procfn(j).fn.outdata]+ind) = [j * ones(1, nod); 1:nod];
+            noutdata = length([scandef(i).procfn(j).fn.outdata]); % number of outdata chans 
+            dataindPrev = sum(ngetchan(1:i-1)); % data channel index for previous loops. 
+            
+            %First gives which outdata chan index, next which procfn index.    
+             outdataInd = [scandef(i).procfn(j).fn.outdata]; 
+             outdataNum(outdataInd+dataindPrev) = 1:noutdata;            
+             procInd(outdataInd+dataindPrev) = j * ones(1, noutdata);                  
         else
-            odind(:, sum(ngetchan(1:i-1))+j) = [j ; 1];
+            dataind = sum(ngetchan(1:i-1)) + j;
+            procInd(dataind) = j; 
+            outdataNum(dataind) = 1; 
             ngetchan(i) = max(ngetchan(i), j);
         end
         
@@ -246,6 +263,7 @@ for i = 1:nloops
             [scandef(i).procfn(j).fn.outchan] = deal(scandef(i).procfn(j).fn.inchan);
         end
         
+        %FIX ME
         if ~isempty(scandef(i).procfn(j).fn)
           for k = 1:length(scandef(i).procfn(j).fn)
               if isempty(scandef(i).procfn(j).fn(k).inchan)
@@ -263,8 +281,7 @@ for i = 1:nloops
     elseif length(scandef(i).ramptime) == 1 
         scandef(i).ramptime = repmat(scandef(i).ramptime, size(scandef(i).setchan));
     end
-
-    %k = nloops-i+1; %use user convention: slowest loops first    
+   
     if isempty(scandef(i).trafofn)
         scandef(i).trafofn = {};
        [scandef(i).trafofn{1:nsetchan(i)}] = deal(@(x, y) x(i));
@@ -274,18 +291,9 @@ for i = 1:nloops
                 if isempty(scandef(i).trafofn{j})
                     scandef(i).trafofn{j} = @(x, y) x(i);
                 end
-            else
-                if isempty(scandef(i).trafofn(j).fn)
-                  scandef(i).trafofn(j).fn = @(x, y) x(i);
-                  scandef(i).trafofn(j).args = {};
-                end
-                if ~iscell(scandef(i).trafofn(j).args)
-                    if ~isempty(scandef(i).trafofn(j).args)
-                        error('Trafofn args must be a cell array');
-                    else
-                        scandef(i).trafofn(j).args={};
-                    end
-                end
+            elseif isempty(scandef(i).trafofn(j).fn)
+                scandef(i).trafofn(j).fn = @(x, y) x(i);
+                scandef(i).trafofn(j).args = {};
             end                
         end
     end
@@ -294,66 +302,69 @@ end
 npoints = [scandef.npoints];
 totpoints = prod(npoints);
 
-datadim = zeros(sum(ngetchan), 5); % size of data read each time
+datadim = zeros(sum(ngetchan), 5); % size of data read each time, can be up to 5d. 
 %newdata = cell(1, max(ngetchan));
 data = cell(1, sum(ngetchan));
 ndim = zeros(1, sum(ngetchan)); % dimension of data read each time
 dataloop = zeros(1, sum(ngetchan)); % loop in which each channel is read
-disph = gobjects(1, sum(ngetchan));
+disph = zeros(1, sum(ngetchan));
 ramprate = cell(1, nloops);
-tloop = zeros(1, nloops);
+tFrstPt = zeros(1, nloops);
 getch = vertcat(scandef.getchan);
 % get data dimension and allocate data memory
 for i = 1:nloops
     instchan = vertcat(smdata.channels(scandef(i).getchan).instchan);            
+    dataindPrev = sum(ngetchan(1:i-1));
     for j = 1:ngetchan(i)
-        ind = sum(ngetchan(1:i-1))+ j; % data channel index
-        if  isfield(scandef(i).procfn(odind(1, ind)), 'dim') && ~isempty(scandef(i).procfn(odind(1, ind)).dim)
-            %get dimension of proscessed data if procfn used
-            dd = scandef(i).procfn(odind(1, ind)).dim(odind(2, ind), :);                                     
+        dataind = dataindPrev + j; % data channel index
+        currProc = procInd(dataind); 
+        if  isfield(scandef(i).procfn(currProc), 'dim') && ~isempty(scandef(i).procfn(currProc).dim)
+            %get dimension of processed data if procfn used
+            datadimCurr = scandef(i).procfn(currProc).dim(outdataNum(dataind), :);                                     
         else
-            dd = smdata.inst(instchan(j, 1)).datadim(instchan(j, 2), :);
+            datadimCurr = smdata.inst(instchan(j, 1)).datadim(instchan(j, 2), :);
         end
         
-        %ndim(ind) = sum(dd > 1); % used unitl 08/03/09. See software.txt        
-        if all(dd <= 1)
-            ndim(ind) = 0;
+        if all(datadimCurr <= 1)
+            ndimCurr = 0; 
         else
-            ndim(ind) = find(dd > 1, 1, 'last');
+            ndimCurr = find(datadimCurr > 1, 1, 'last');
         end
+        
         % # of non-singleton dimensions
-        datadim(ind, 1:ndim(ind)) = dd(1:ndim(ind));
-        if isfield(scandef(i).procfn(odind(1, ind)).fn, 'outdata')
-            dim = datadim(ind, 1:ndim(ind));
-            % no not expand dimension if outdata given.
-        else
-            dim = [npoints(end:-1:i), datadim(ind, 1:ndim(ind))];
+        datadimCurr = datadimCurr(1:ndimCurr); 
+        if isfield(scandef(i).procfn(currProc).fn, 'outdata')
+            dataCellSize = datadimCurr;
+            % i.e. do not expand dimension if outdata given.
+        else %collect points of size dimnsions outer + current loops 
+            dataCellSize = [npoints(end:-1:i), datadimCurr];
         end
-        if length(dim) == 1
-            dim(2) = 1;
+        if length(dataCellSize) == 1 %create many rows. 
+            dataCellSize(2) = 1;
         end
-        data{ind} = nan(dim);
-        dataloop(ind) = i;
+        ndim(dataind) = ndimCurr;
+        datadim(dataind, 1:ndimCurr) = datadimCurr;
+        data{dataind} = nan(dataCellSize);
+        dataloop(dataind) = i; 
     end
 end
    
 switch length(disp)
     case 1
-        sbpl = [1 1];         
+        subplotSize = [1 1];         
     case 2
-        sbpl = [1 2];
+        subplotSize = [1 2];
    
     case {3, 4}
-        sbpl = [2 2];
+        subplotSize = [2 2];
         
     case {5, 6}
-        sbpl = [2 3];
+        subplotSize = [2 3];
         
     otherwise
-        sbpl = [3 3];
+        subplotSize = [3 3];
         disp(10:end) = [];
 end
-
 
 % determine the next available figure after 1000 for this measurement.  A
 % figure is available unless its userdata field is the string 'SMactive'
@@ -376,7 +387,6 @@ else
     clf;
 end
 
-
 set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
 set(figurenumber, 'CurrentCharacter', char(0));
 
@@ -388,73 +398,66 @@ if ~isfield(disp, 'loop')
 end
 
 s.type = '()';
-s2.type = '()';
 for i = 1:length(disp)    
-    subplot(sbpl(1), sbpl(2), i);
-    dc = disp(i).channel; %index of channel to be displayed
-    % modify if reducing data before plotting
-
-    s.subs = num2cell(ones(1, nloops - dataloop(dc) + 1 + ndim(dc)));
+    subplot(subplotSize(1), subplotSize(2), i);
+    dispchan = disp(i).channel; %index of channel to be displayed    
+    nDimCurr = ndim(dispchan); 
+    
+    % dataloop(dispchan) gives which loop the data is updated on    
+    s.subs = num2cell(ones(1, nloops - dataloop(dispchan) + 1 + nDimCurr));
     [s.subs{end-disp(i).dim+1:end}] = deal(':');
-    %s.subs = [num2cell(ones(1, dataloop(scan.dispchan(i)) + ndim(scan.dispchan(i))-2)), ':', ':'];
-    if dataloop(dc) - ndim(dc) < 1 
-        x = 1:datadim(dc, ndim(dc));
+    dispXval = dataloop(dispchan) - nDimCurr;  
+    if dispXval < 1 % if this is < 1, don't have channel names or range to associate with x axis. 
+        x = 1:datadim(dispchan, nDimCurr); % instead of range, just find number of data points. 
         xlab = 'n';
     else
-        x = scandef(dataloop(dc) - ndim(dc)).rng;        
-        if ~isempty(scandef(dataloop(dc) - ndim(dc)).setchan)
-            xlab = smdata.channels(scandef(dataloop(dc) - ndim(dc)).setchan(1)).name;
+        x = scandef(dispXval).rng; % if possible, set the x axis to have range of sweep channel and name of setchan.       
+        if ~isempty(scandef(dispXval).setchan)
+            xlab = smdata.channels(scandef(dispXval).setchan(1)).name;
         else
             xlab = '';
         end
     end
 
     if disp(i).dim == 2        
-        if dataloop(dc) - ndim(dc) < 0
-%            y = [1, datadim(dc, ndim(dc)-1)];  % Not sure what this was
-%            supposed to do.
-            y = 1:datadim(dc, ndim(dc)-1);
+        if dispXval < 0 % if this is < 0, we don't have channel names to associate with y axis. 
+            y = 1:datadim(dispchan, nDimCurr-1);
             ylab = 'n';
         else
-            y = scandef(dataloop(dc) - ndim(dc) + 1).rng;
-            if ~isempty(scandef(dataloop(dc) - ndim(dc) + 1).setchan)
-                ylab = smdata.channels(scandef(dataloop(dc) - ndim(dc) + 1).setchan(1)).name;
+            y = scandef(dispXval + 1).rng;
+            if ~isempty(scandef(dispXval + 1).setchan)
+                ylab = smdata.channels(scandef(dispXval + 1).setchan(1)).name;
             else
                 ylab = '';
             end
         end
         z = zeros(length(y), length(x));
-        z(:, :) = subsref(data{dc}, s);
+        z(:, :) = subsref(data{dispchan}, s);
         disph(i) = imagesc(x, y, z);
         %disph(i) = imagesc(x, y, permute(subsref(data{dc}, s), [ndim(dc)+(-1:0), 1:ndim(dc)-2]));
         
-        set(gca, 'ydir', 'normal');
+        set(gca, 'YDir', 'Normal');
         colorbar;
-        if dc <= length(getch)
-            title(smdata.channels(getch(dc)).name);
+        if dispchan <= length(getch)
+            title(smdata.channels(getch(dispchan)).name);
         end
         xlabel(xlab);
         ylabel(ylab);
     else
         y = zeros(size(x));
-        y(:) = subsref(data{dc}, s);
+        y(:) = subsref(data{dispchan}, s);
         disph(i) = plot(x, y);
         %permute(subsref(data{dc}, s), [ndim(dc), 1:ndim(dc)-1])
         xlim(sort(x([1, end])));
         xlabel(xlab);
-        if dc <= length(getch)
-            ylabel(smdata.channels(getch(dc)).name);
+        if dispchan <= length(getch)
+            ylabel(smdata.channels(getch(dispchan)).name);
         end
     end
 end  
 
 x = zeros(1, nloops);
-
-if isfield(scan,'configch')
-  configvals = cell2mat(smget(scan.configch));    
-else
-  configvals = cell2mat(smget(smdata.configch));
-end
+configvals = cell2mat(smget(smdata.configch));
 configch = {smdata.channels(smchanlookup(smdata.configch)).name};
 
 configdata = cell(1, length(smdata.configfn));
@@ -478,122 +481,116 @@ tic;
 count = ones(size(npoints)); % will cause all loops to be updated.
 
 % find loops that do nothing other than starting a ramp and have skipping enabled (waittime < 0)
+%they also hve no getchan, prefn, postfn, no saves or disps. 
 isdummy = false(1, nloops);
 for i = 1:nloops
     isdummy(i) = isfield(scandef(i), 'waittime') && ~isempty(scandef(i).waittime) && scandef(i).waittime < 0 ...
         && all(scandef(i).ramptime < 0) && isempty(scandef(i).getchan) ...
         &&  (~isfield(scandef(i), 'prefn') || isempty(scandef(i).prefn)) ...
         && (~isfield(scandef(i), 'postfn') || isempty(scandef(i).postfn)) ...
-        && ~any(scan.saveloop(1) == i) && ~any([disp.loop] == i);
+        && ~any(scan.saveloop(1) == j) && ~any([disp.loop] == j);
 end
 
-loops = 1:nloops; % indices of loops to be updated. 1 = fastest loop
 for i = 1:totpoints    
-    % update a loop if all faster loops are at first val
+    % We update outer loops after setting inner loops to 1. 
+    % loops is the list to update on this ind. 
     if i > 1;
-        loops = 1:find(count > 1, 1);        
-    end       
+        outerUpdatingLoop = find(count > 1,1); 
+        setLoops = 1:outerUpdatingLoop;       
+    else
+        setLoops = 1:nloops; % indices of loops to be updated. 1 = fastest loop
+    end
     
-    for j = loops
+    %x is the set of values to set in this ind.
+    for j = setLoops
         x(j) = scandef(j).rng(count(j));
     end
-
-    xt = x;  
+    
+    xtrans = x;  
     for k = 1:length(scan.trafofn)
-        xt = trafocall(scan.trafofn(k), xt);
+        xtrans = trafocall(scan.trafofn(k), xtrans);
     end
-
-    for j = fliplr(loops(~isdummy(loops) | count(loops)==1)) % exclude dummy loops after first point 
-        val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);        
+    
+    activeLoops = setLoops(~isdummy(setLoops) | count(setLoops)==1);
+    
+    %Go from outerloops in. 
+    for j = fliplr(activeLoops)
+        % exclude dummy loops with nonzero count
+        val = trafocall(scandef(j).trafofn, xtrans, smdata.chanvals);
+        
         autochan = scandef(j).ramptime < 0;
-        scandef(j).ramptime(autochan) = min(scandef(j).ramptime(autochan));
+        scandef(j).ramptime(autochan) = min(scandef(j).ramptime(autochan));        
         % alternative place to call prefn
         
         % set autochannels and program ramp only at first loop point
         if count(j) == 1 %
-            if nsetchan(j) % stuff below pointless if no channels exist.
+            if nsetchan(j) 
                 smset(scandef(j).setchan, val(1:nsetchan(j)));
-                % since only the entry for this loop is changed, this
-                % procedure only makes sense if the loop is not mixed
-                % with any faster loop by the global transformations.
-                % Should not be a major limitation.
-                if isfield(scandef(j),'settle') && ~isempty(scandef(j).settle) && scandef(j).settle ~= 0
-                    pause(scandef(j).settle)
-                end
-                x2 = x;
-                x2(j) = scandef(j).rng(end);
+                xEnd = x;
+                xEnd(j) = scandef(j).rng(end);
                 for k = 1:length(scan.trafofn)
-                    x2 = trafocall(scan.trafofn(k), x2);
+                    xEnd = trafocall(scan.trafofn(k), xEnd);
                 end
 
-                val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
+                valEnd = trafocall(scandef(j).trafofn, xEnd, smdata.chanvals);
 
                 % compute ramp rate for all steps.
-                ramprate{j} = abs((val2(1:nsetchan(j))-val(1:nsetchan(j))))'...
+                ramprate{j} = abs((valEnd(1:nsetchan(j))-val(1:nsetchan(j))))'...
                     ./(scandef(j).ramptime * (scandef(j).npoints-1));
 
                 % program ramp
                 if any(autochan)
-                    smset(scandef(j).setchan(autochan), val2(autochan), ramprate{j}(autochan));
+                    smset(scandef(j).setchan(autochan), valEnd(autochan), ramprate{j}(autochan));
                 end
-
             end
-            tloop(j) = now;
+            tFrstPt(j) = now;
         elseif ~all(autochan)
             smset(scandef(j).setchan(~autochan), val(~autochan), ...
                 ramprate{j}(~autochan));            
         end
-        
-        % prolog functions
-        if isfield(scandef, 'prefn') && ~isempty(scandef(j).prefn)
-            fncall(scandef(j).prefn, xt);
+                
+        if isfield(scandef, 'prefn')
+            fncall(scandef(j).prefn, xtrans);
         end              
-
-        tp=(tloop(j) - now)*24*3600 + count(j) * max(abs(scandef(j).ramptime)); 
-        if ~isfield(scandef(j),'stream') || isempty(scandef(j).stream) || ~scandef(j).stream
-            pause(tp);  % Pause always waits 10ms
-        end
+        
+        %wait for correct ramptime
+        tp=count(j) * max(abs(scandef(j).ramptime)) - (now -tFrstPt(j))*24*3600;        
+        pause(tp);  % Pause always waits 10ms
         
         % if the field 'waittime' was in scan.loops(j), then wait that
         % amount of time now
-        if isfield(scandef,'waittime') && ~isempty(scandef(j).waittime) && scandef(j).waittime ~= 0
+        if isfield(scandef,'waittime')
             pause(scandef(j).waittime)
         end
         
         % trigger after waiting for first point.
-        if count(j) == 1 && isfield(scandef, 'trigfn') && ~isempty(scandef(j).trigfn)
+        if count(j) == 1 && isfield(scandef, 'trigfn')
             fncall(scandef(j).trigfn);
         end
-
     end
-    % read loops if all subsequent loops are at max count, outer loops last
-    loops = 1:find(count < npoints, 1);
-    if isempty(loops)
-        loops = 1:nloops;
+    
+    % read loops from inner to outer.
+    %Only read the outerloops if inner loops are at their max. i.e. read at
+    %the end of the loop. 
+    readLoops = 1:find(count < npoints, 1);
+    if isempty(readLoops)
+        readLoops = 1:nloops;
     end
-    for j = loops(~isdummy(loops))
-        % could save a function call/data copy here - not a lot of code               
+    for j = readLoops(~isdummy(readLoops))
         newdata = smget(scandef(j).getchan);
         
-        if debug  
-            sz=size(newdata);
-            celldisp(mat2cell(sz));
-            fprintf('newdata size \n');
-        end %disp is overwritten in smrun.
-        
         if isfield(scandef, 'postfn')
-            fncall(scandef(j).postfn, xt);
-        end               
+            fncall(scandef(j).postfn, xtrans);
+        end
 
-        ind = sum(ngetchan(1:j-1));
-        for k = 1:length(scandef(j).procfn) 
-            
+        dataindPrev = sum(ngetchan(1:j-1));
+        for k = 1:length(scandef(j).procfn)  
             if isfield(scandef(j).procfn(k).fn, 'outdata')
                 for fn = scandef(j).procfn(k).fn
                     if isempty(fn.outchan)
-                        data{ind + fn.outdata} = fn.fn(newdata{fn.inchan}, data{ind + fn.indata}, fn.args{:});
+                        data{dataindPrev + fn.outdata} = fn.fn(newdata{fn.inchan}, data{dataindPrev + fn.indata}, fn.args{:});
                     else
-                        [newdata{fn.outchan}, data{ind + fn.outdata}] = fn.fn(newdata{fn.inchan}, data{ind + fn.indata}, fn.args{:});
+                        [newdata{fn.outchan}, data{dataindPrev + fn.outdata}] = fn.fn(newdata{fn.inchan}, data{dataindPrev + fn.indata}, fn.args{:});
                     end
                 end
             else
@@ -604,43 +601,42 @@ for i = 1:totpoints
                         [newdata{fn.outchan}] = fn.fn(newdata{fn.inchan}, fn.args{:});
                     end
                 end
-                s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(ind + k))];
+                s.subs = [num2cell(count(end:-1:j)), repmat({':'}, 1, ndim(dataindPrev + k))];
                 if isempty(fn)
-                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{k}); 
+                    data{dataindPrev + k} = subsasgn(data{dataindPrev + k}, s, newdata{k}); 
                 else
-                    data{ind + k} = subsasgn(data{ind + k}, s, newdata{fn.outchan(1)});
+                    data{dataindPrev + k} = subsasgn(data{dataindPrev + k}, s, newdata{fn.outchan(1)});
                 end
-                % added if and else case 08/04/09. See software.txt
             end
                
         end    
         
         % display data. 
-        for k = find([disp.loop] == j)
-            dc = disp(k).channel;
+        for k = find([disp.loop] == j) %update everything set to updated this loop
+            dispchan = disp(k).channel;  % channel to update. 
 
-            % last dim: :
-            % previous: count or ones. Total number of indices
-            % 
-            nind = ndim(dc)+ nloops+1-dataloop(dc)-disp(k).dim;
-            s2.subs = [num2cell([count(end:-1:max(j, end-nind+1)), ones(1, max(0, nind+j-1-nloops))]),...
+            nouterLoops = nloops - dataloop(dispchan) + 1; %outerloops for current getchan
+            nLoopsPlotted = nloops + 1 - j + disp(k).dim; % number of loops plotted at once + number of loops data replotted   
+            dataCellDim = nouterLoops + ndim(dispchan); % number of loops required to plot all data. 
+            underSampInds = dataCellDim - nLoopsPlotted;
+            % this is done in the case that we are updating a later loop
+            % than we can to display all the data. in this case, select
+            % just the first row. 
+            
+            countDataOrd = fliplr(count); % current indices to to be plotting from outer to inner loop.  
+            nInds = min(nloops+1-j,nloops+1-j+underSampInds);  % if we underSamp < 0, will need to get total length of s.subs correct.
+            s.subs = [num2cell([countDataOrd(1:nInds), ones(1, max(0,underSampInds))]),...
                 repmat({':'},1, disp(k).dim)];    
             
             if disp(k).dim == 2
-                dim = size(data{dc});
-                z = zeros(dim(end-1:end));
-                z(:, :) = subsref(data{dc}, s2);
+                dataCellSize = size(data{dispchan});
+                z = zeros(dataCellSize(end-1:end));
+                z(:, :) = subsref(data{dispchan}, s);
                 set(disph(k), 'CData', z);
-                  if ~isempty(disph(k).CData)
-                      rng = [min(disph(k).CData(:)), max(disph(k).CData(:))]; 
-                      if ~(diff(rng)==0)
-                      disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
-                      end
-                  end                    
             else                
-                set(disph(k), 'YData', subsref(data{dc}, s2));
+                set(disph(k), 'YData', subsref(data{dispchan}, s));
             end
-            drawnow;            
+            drawnow;
         end
 
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
@@ -648,24 +644,22 @@ for i = 1:totpoints
         end
                
         if isfield(scandef, 'datafn')
-            fncall(scandef(j).datafn, xt, data);
+            fncall(scandef(j).datafn, xtrans, data);
         end
 
     end
+    
     %update counters
-    count(loops(1:end-1)) = 1;  count(loops(end)) =  count(loops(end)) + 1;
+     if isfield(scandef, 'testfn') && ~isempty(scandef(j).testfn)
+            [quitScan,quitLoop,scandef] = fncall(scandef(j).testfn, xt, data, scandef);
+     end
+   
+    count(readLoops(1:end-1)) = 1;
+    count(readLoops(end)) =  count(readLoops(end)) + 1;
 
-    if isfield(scandef,'testfn') && ~isempty(scandef(j).testfn)
-            if ~isfield(scandef(j).testfn,'mod') || isempty(scandef(j).testfn.mod) || ~mod(count(j),scandef(j).testfn.mod)
-                testgood = testcall(scandef(j).testfn,xt, data);
-            else 
-                testgood =1; 
-            end
-    else
-        testgood =1; 
-    end
-    figChar = get(figurenumber,'CurrentCharacter'); 
-    if (~isempty(figChar) && figChar == char(27)) || testgood == 0
+    %if escape has been typed, exit scan by running cleanup function and
+    %saving data. 
+    if get(figurenumber, 'CurrentCharacter') == char(27) 
         if isfield(scan, 'cleanupfn')
             for k = 1:length(scan.cleanupfn)
                 scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
@@ -675,12 +669,12 @@ for i = 1:totpoints
         if nargin >= 2
             save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
         end
-        %set(figurenumber, 'CurrentCharacter', char(0));
+        set(figurenumber, 'CurrentCharacter', char(0));
         set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
         return;
     end
         
-    if figChar == ' '
+    if get(figurenumber, 'CurrentCharacter') == ' '
         set(figurenumber, 'CurrentCharacter', char(0));
         fprintf('Measurement paused. Type ''return'' to continue.\n')
         evalin('base', 'keyboard');                
@@ -712,56 +706,26 @@ else
         if ischar(fns(i).fn)
           fns(i).fn = str2func(fns(i).fn);
         end
-        if ~iscell(fns(i).args)
-            if isempty(fns(i).args)
-                fns(i).args={};
-            else
-                error('Arguments to functions must be a cell array');
-            end
-        end
         fns(i).fn(varargin{:}, fns(i).args{:});        
     end
 end
 end
 
-function v = trafocall(fn, varargin)   
+function v = trafocall(fn, x, chanvals)   
 v = zeros(1, length(fn));
 if iscell(fn)
     for i = 1:length(fn)
         if ischar(fn{i})
           fn{i} = str2func(fn{i});
         end
-        v(i) = fn{i}(varargin{:});
+        v(i) = fn{i}(x,chanvals);
     end
 else
     for i = 1:length(fn)
         if ischar(fn(i).fn)
           fn(i).fn = str2func(fn(i).fn);
         end
-        v(i) = fn(i).fn(varargin{:}, fn(i).args{:});
+        v(i) = fn(i).fn(x,chanvals, fn(i).args{:});
     end
-end
-end
-
-function good = testcall(fn,xt,data)
-v = zeros(1, length(fn));
-if iscell(fn)
-    for i = 1:length(fn)
-        if ischar(fn{i})
-          fn{i} = str2func(fn{i});
-        end
-        v(i) = fn{i}(xt,data);
-    end
-else
-    for i = 1:length(fn)
-        if ischar(fn(i).fn)
-          fn(i).fn = str2func(fn(i).fn);
-        end
-        v(i) = fn(i).fn(xt,data, fn(i).args{:});
-    end
-end
-if all(v) == 1
-    good =1; 
-else good = 0; 
 end
 end

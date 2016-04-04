@@ -27,22 +27,17 @@ switch ic(2) % Channel
                         pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp - navail) ...
                             * smdata.inst(ic(1)).data.sampint);
                     end
-                end
-                
+                end                
                 fprintf(smdata.inst(ic(1)).data.inst, 'TRCB? %d, %d, %d', ...
                     [ic(2)-14, smdata.inst(ic(1)).data.currsamp+[0, npts]]);
                 val = fread(smdata.inst(ic(1)).data.inst, npts, 'single');
-                smdata.inst(ic(1)).data.currsamp =  smdata.inst(ic(1)).data.currsamp + npts;
-                
+                smdata.inst(ic(1)).data.currsamp =  smdata.inst(ic(1)).data.currsamp + npts;                
             case 3
                 fprintf(smdata.inst(ic(1)).data.inst, 'STRT');
-
             case 4
                 fprintf(smdata.inst(ic(1)).data.inst, 'REST');
                 smdata.inst(ic(1)).data.currsamp = 0;
-                pause(.1); %needed to give instrument time before next trigger.
-                % anything much shorter leads to delays.
-                
+                pause(.1); %needed to give instrument time before next trigger, anything much shorter leads to delays.                
             case 5
                 if nargin > 4 && strfind(ctrl, 'sync')
                     n = 14;
@@ -61,15 +56,11 @@ switch ic(2) % Channel
                 %end
                 pause(.1);
                 smdata.inst(ic(1)).data.currsamp = 0;
-
                 smdata.inst(ic(1)).data.sampint = 1/rate;
                 smdata.inst(ic(1)).datadim(15:16, 1) = val;
-
             otherwise
-                error('Operation not supported');
-                
+                error('Operation not supported');                
         end
-        
     otherwise
         switch ic(3) % action
             case 1 % set
@@ -87,15 +78,13 @@ switch ic(2) % Channel
                 elseif ic(2)==18
                     val = SR830tauvalue(val);
                 end
-
             otherwise
                 error('Operation not supported');
         end
 end
 
 function val = SR830sensvalue(sensindex)
-% converts an index to the corresponding sensitivity value for the SR830
-% lockin.
+% converts an index to the corresponding sensitivity value for the SR830 lockin.
 x = [2e-9 5e-9 10e-9];
 sensvals = [x 1e1*x 1e2*x 1e3*x 1e4*x 1e5*x 1e6*x 1e7*x 1e8*x 1e9*x];
 val = sensvals(sensindex+1);
@@ -108,8 +97,7 @@ sensvals = [x 1e1*x 1e2*x 1e3*x 1e4*x 1e5*x 1e6*x 1e7*x 1e8*x 1e9*x];
 sensindex = find(sensvals >= sensval,1)-1;
 
 function val = SR830tauvalue(tauindex)
-% converts an index to the corresponding sensitivity value for the SR830
-% lockin.
+% converts an index to the corresponding sensitivity value for the SR830 lockin.
 x = [10e-6 30e-6];
 tauvals = [x 1e1*x 1e2*x 1e3*x 1e4*x 1e5*x 1e6*x 1e7*x 1e8*x 1e9*x];
 val = tauvals(tauindex+1);
