@@ -65,11 +65,8 @@ function [data,xt] = smrun(scan, filename)
 %     You should have received a copy of the GNU General Public License
 %     along with Special Measure.  If not, see <http://www.gnu.org/licenses/>.
 
-debug=false;
-
 global smdata;
 global smscan;
-
 
 %if no scan is sent to smrun, assume only field is filename
 if ~isstruct(scan) 
@@ -78,10 +75,12 @@ if ~isstruct(scan)
 end
 
  % handle setting up self-ramping trigger for inner loop if none is
- % provided
+ % provided 
+ % Assumes self ramping / no trigger if the ramptime is negative and either
+ % there's no trigfn or the trigfn has field autoset set to true. 
+ %Use smatrigfn 
 if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(scan.loops(1),'trigfn') || ...
-                                    isempty(scan.loops(1).trigfn) || ...
-                                    (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
+   isempty(scan.loops(1).trigfn) || (isfield(scan.loops(1).trigfn,'autoset') && scan.loops(1).trigfn.autoset))
     scan.loops(1).trigfn.fn=@smatrigfn;
     scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
 end
@@ -139,24 +138,11 @@ for i=1:length(scandef)
     end
 end
 
-% Check if ramprates too large 
-
-
-if ~isfield(scandef, 'npoints')
-    [scandef.npoints] = deal([]);
-end
-
-if ~isfield(scandef, 'trafofn')
-    [scandef.trafofn] = deal({});
-end
-
-if ~isfield(scandef, 'procfn')
-    [scandef.procfn] = deal([]);
-end
-
-if ~isfield(scandef, 'ramptime')
-     [scandef.ramptime] = deal([]);
-end
+if ~isfield(scandef, 'npoints'),   [scandef.npoints] = deal([]); end
+if ~isfield(scandef, 'trafofn'),   [scandef.trafofn] = deal({}); end
+if ~isfield(scandef, 'procfn'),    [scandef.procfn] = deal([]);  end
+if ~isfield(scandef, 'ramptime'),  [scandef.ramptime] = deal([]); end
+if ~isfield(scan, 'trafofn'),      scan.trafofn = {};           end
 
 if ~isfield(scan, 'saveloop')
     scan.saveloop = [2 1];
@@ -164,16 +150,9 @@ elseif length(scan.saveloop) == 1
     scan.saveloop(2) = 1;
 end
 
-if ~isfield(scan, 'trafofn')
-    scan.trafofn = {};
-end
-
-if nargin >= 2 && filename(2)~=':'
-    if isempty(filename);
-        filename = 'data';
-    end
-    
-    if all(filename ~= '/')
+if nargin >= 2 && filename(2)~=':' 
+    if isempty(filename), filename = 'data';     end    %default is data     
+    if all(filename ~= '/') % relative path
         filename = sprintf('sm_%s.mat', filename);
     end
     
@@ -194,13 +173,13 @@ if nargin >= 2 && filename(2)~=':'
 end
 
 for i = 1:nloops
-    if isempty(scandef(i).npoints)        
+    % If only have one of npoints, rng, can make up the rest. 
+    if isempty(scandef(i).npoints)     
         scandef(i).npoints = length(scandef(i).rng);
     elseif isempty(scandef(i).rng)        
         scandef(i).rng = 1:scandef(i).npoints;
     else
-        scandef(i).rng = linspace(scandef(i).rng(1), scandef(i).rng(end), ...
-            scandef(i).npoints);
+        scandef(i).rng = linspace(scandef(i).rng(1), scandef(i).rng(end),   scandef(i).npoints);
     end
 
     % default for ramp?
@@ -574,12 +553,6 @@ for i = 1:totpoints
     for j = loops(~isdummy(loops))
         % could save a function call/data copy here - not a lot of code               
         newdata = smget(scandef(j).getchan);
-        
-        if debug  
-            sz=size(newdata);
-            celldisp(mat2cell(sz));
-            fprintf('newdata size \n');
-        end %disp is overwritten in smrun.
         
         if isfield(scandef, 'postfn')
             fncall(scandef(j).postfn, xt);

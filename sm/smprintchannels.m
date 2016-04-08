@@ -13,7 +13,7 @@ end
 
 fmt = '%2d   %-10s  %-10s  %-12s  %-10s %-7s %-4s \n';
 fprintf(['CH', fmt(4:end)], 'Name', 'Device', 'Dev. Name', 'Dev. Ch.','Ramping','Dim');
-fprintf([repmat('-', 1, 60), '\n']);
+fprintf([repmat('-', 1, 70), '\n']);
 for i = ch;
     ic = smdata.channels(i).instchan;
     if ic(1) > length(smdata.inst) 
@@ -27,19 +27,21 @@ for i = ch;
             if smdata.inst(ic(1)).type(ic(2)) == 1;
                 chanType = 'Yes'; 
             else 
-                chanType = 'No'; 
+                chanType = ''; 
             end
         end
         if all(size(smdata.inst(ic(1)).datadim) >0)
             if size(smdata.inst(ic(1)).datadim,1)<ic(2)
                 chanDim = num2str(NaN);
-            elseif smdata.inst(ic(1)).datadim(ic(2))==0
-                chanDim = num2str(1);
+            elseif smdata.inst(ic(1)).datadim(ic(2))==0 || smdata.inst(ic(1)).datadim(ic(2))==1
+                %chanDim = num2str(1); 
+                chanDim = ''; 
             else
                 chanDim = num2str(smdata.inst(ic(1)).datadim(ic(2)));
             end                        
         else
-            chanDim = num2str(1);
+            %chanDim = num2str(1); 
+            chanDim = ''; 
         end
         dev = smdata.inst(ic(1)).device; 
         instName = smdata.inst(ic(1)).name;

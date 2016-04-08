@@ -1,4 +1,6 @@
 function config=smaSRS830(ico,config) 
+%config=smaSRS830(ico,config) 
+% opts : def 
 % possibilities are meas, shield, couple, line, reserve, filter, sync, ref 
 
 global smdata;
