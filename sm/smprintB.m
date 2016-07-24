@@ -33,7 +33,7 @@ if isfield(scan,'configfn')&&~isempty(scan.configfn)
     end
 end
 try
-if isfield(scan,'cleanupfn')&&~isempty(scan.cleanupfn) 
+if isfield(scan,'cleanupfn')&& ~isempty(scan.cleanupfn) 
     fprintf('cleanupfn: \n') 
     for i = 1:length(scan.cleanupfn) 
         fprintf('    %g: fn: %s, args: ',i,func2str(scan.cleanupfn(i).fn)) 
@@ -42,8 +42,7 @@ if isfield(scan,'cleanupfn')&&~isempty(scan.cleanupfn)
                 fprintf('%s ',scan.cleanupfn(i).args{j}); 
             else 
                 fprintf('%g ',scan.cleanupfn(i).args{j}); 
-            end
-            
+            end            
         end
         fprintf('\n')
     end
@@ -90,11 +89,14 @@ for i = 1:length(scan.loops)
     
     fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n\n', ...
         i, scan.loops(i).rng([1, end]), scan.loops(i).npoints);
-    
+    if ~isempty(ch)
     fprintf('Channels set : ')
     fprintf('%-15s ', smdata.channels(ch).name);
+    end
+    if ~isempty(scan.loops(i).ramptime)
     fprintf('\nRamptimes    : ')
     fprintf('%-4.2d s/point    ', scan.loops(i).ramptime);
+    end
     if isfield(scan.loops(i), 'trafofn')&&~isempty(scan.loops(i).trafofn)
         fprintf('\nTransform''s  : ')
         for j = 1:length(scan.loops(i).trafofn)
@@ -141,12 +143,17 @@ for i = 1:length(scan.loops)
     end
     
     if isfield(scan.loops(i),'trigfn')&&~isempty(scan.loops(i).trigfn)
-        fprintf('trigfn: \n')
+        fprintf('trigfn:')
         for k = 1:length(scan.loops(i).trigfn)
-            fprintf('    %g: fn: %s, args: ',k,func2str(scan.loops(i).trigfn(k).fn))
+            fprintf('    %s, args: ',k,func2str(scan.loops(i).trigfn(k).fn))
             for j = 1:length(scan.loops(i).trigfn(k).args)
-                fprintf('%g ',scan.loops(i).trigfn(k).args{j});
+                if ischar(scan.loops(i).trigfn(k).args{j})
+                    fprintf('%s ',scan.loops(i).trigfn(k).args{j});
+                else
+                    fprintf('%g ',scan.loops(i).trigfn(k).args{j});
+                end
             end
+
             fprintf('\n')
         end
     end

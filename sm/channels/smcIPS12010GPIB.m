@@ -4,31 +4,26 @@ function val = smcIPS12010GPIB(ico, val, rate)
 % usually board index is 0, address is 25
 % can change Timeout to 1
 % 6/27/2012: modified to automatically reset GPIB comm parameters with each
-%           invocation.  Much safer.
-%           
+%           invocation.  Much safer.         
 % 1/18/2010: modified to close and open magnet if behavior is sluggish
 %           currently uses tic/toc instead of cputime because of bad
 %           behavior of cputime on MX400 computer.
 % 4/9/2010: added ramp support (set ramprate < 0, and use
 %   scan.loops(1).trigfn.fn=@smatrigfn.  using GUI, setting
 %   smscan.loops(1).trigfn.autoset=1 is enough.
+%ico: vector with instruemnt(index to smdata.inst), channel number for that instrument, operation
+% operation: 0 - read, 1 - set , 2 - unused usually,  3 - trigger
+% rate overrides default
+%Might need in setup:
+%channel 1: FIELD
 
 tic
-
-
 
 global smdata;
 
 if ico(3)==1
     rateperminute = rate*60;
 end
-
-%ico: vector with instruemnt(index to smdata.inst), channel number for that instrument, operation
-% operation: 0 - read, 1 - set , 2 - unused usually,  3 - trigger
-% rate overrides default
-
-%Might need in setup:
-%channel 1: FIELD
 
 mag = smdata.inst(ico(1)).data.inst;
 
@@ -42,12 +37,8 @@ set(mag,'EOSMode','read');
 switch ico(2) % channel
 
     case 1 % [standard] Magnet going to set point, then holding at set point
-
         switch ico(3)
-
             case 1 % set 
-                
-                
                 fprintf(mag, '%s\r', 'X');
                 state = fscanf(mag);
                 
@@ -56,18 +47,13 @@ switch ico(2) % channel
                     if abs(rateperminute) > .5; %.5 T /MIN
                         error('Magnet ramp rate too high')
                     end
-                    
-                    % put instrument in remote controlled mode
-                    fprintf(mag, '%s\r', 'C3');    fscanf(mag);
-                    
-                    if rateperminute<0
-                        % set to hold
-                        fprintf(mag, '%s\r', 'A0'); fscanf(mag);
+                                        
+                    fprintf(mag, '%s\r', 'C3');    fscanf(mag); % put instrument in remote controlled mode                    
+                    if rateperminute<0                        
+                        fprintf(mag, '%s\r', 'A0'); fscanf(mag); % set to hold
                     end
-                    
-                    % set the rate
-                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]); fscanf(mag);
-                    
+                                        
+                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]); fscanf(mag); % set the rate                    
                     
                     % read current persistent field value
                     curr = NaN;
@@ -78,20 +64,12 @@ switch ico(2) % channel
                     persistentsetpoint = curr;
                     
                     if curr ~= val %only go through trouble if we're not at the target field
-                        % get out of persistent mode [code from magpersistoff]
-                        
-                            % turn off switch heater to be safe
-                            fprintf(mag, '%s\r', 'H0'); fscanf(mag);  
-                            pause(3);
-
-                            % make the persistent field value the setpoint
-                            fprintf(mag, '%s\r', ['J' num2str(persistentsetpoint)]); fscanf(mag);
-
-                            % go to setpoint
-                            fprintf(mag, '%s\r', 'A1'); fscanf(mag);
-
-                            % get the current field value
-                            fprintf(mag, '%s\r', ['R7']);
+                        % get out of persistent mode [code from magpersistoff]                                                    
+                            fprintf(mag, '%s\r', 'H0'); fscanf(mag);  % turn off switch heater to be safe
+                            pause(3);                            
+                            fprintf(mag, '%s\r', ['J' num2str(persistentsetpoint)]); fscanf(mag); % make the persistent field value the setpoint                            
+                            fprintf(mag, '%s\r', 'A1'); fscanf(mag); % go to setpoint                            
+                            fprintf(mag, '%s\r', ['R7']); % get the current field value
                             currstring = fscanf(mag);
                             currentfield = str2double(currstring(2:end));
 
@@ -102,76 +80,55 @@ switch ico(2) % channel
                                 currentfield = str2double(currstring(2:end));
                                 pause(10);
                             end
-
-                            % switch on heater
-                            fprintf(mag, '%s\r', 'H1'); fscanf(mag);  
+                            fprintf(mag, '%s\r', 'H1'); fscanf(mag);  % switch on heater
                         
-                        pause(10);
-                        % set the field target
-                        fprintf(smdata.inst(ico(1)).data.inst, '%s\r', ['J' num2str(val)]);
+                        pause(10);                        
+                        fprintf(smdata.inst(ico(1)).data.inst, '%s\r', ['J' num2str(val)]); % set the field target
                         fscanf(smdata.inst(ico(1)).data.inst);
                         
                         if rateperminute > 0
                             % go to target field
                             fprintf(smdata.inst(ico(1)).data.inst, '%s\r', 'A1');
                             fscanf(smdata.inst(ico(1)).data.inst);
-
                             waittime = abs(val-curr)/abs(rate);
-
                             pause(waittime+5);
-
                             fprintf(mag, '%s\r', 'H0'); fscanf(mag);  % turn off switch heater
                             pause(10);
                             fprintf(mag, '%s\r', 'A2'); fscanf(mag);  % set leads to zero
-                             val = 0;  
+                            val = 0;  
                         else
                             val = abs(val-curr)/abs(rate);
                         end
-                    end
-                        
-                                  
-                    
+                    end                                                                         
                 else % magnet not persistent
-
-
                     % any way to delay trigger
                     if abs(rateperminute) > .5; %.5 T /MIN
-                        error('Magnet ramp rate too high')
+                        error('Magnet ramp rate too high') 
                     end
 
-                    % put instrument in remote controlled mode
-                    fprintf(mag, '%s\r', 'C3');
+                    
+                    fprintf(mag, '%s\r', 'C3'); % put instrument in remote controlled mode
                     fscanf(mag);
                     
-                    if rateperminute<0
-                        % set to hold
+                    if rateperminute<0 % set to hold                        
                          fprintf(mag, '%s\r', 'A0'); fscanf(mag);
                     end
-
-                    % set the rate
-                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]);
+                    
+                    fprintf(mag, '%s\r', ['T' num2str(abs(rateperminute))]); % set the rate
                     fscanf(mag);
-
-
-                    % read the current field value
-                    curr = NaN;
+                    
+                    curr = NaN; % read the current field value
                     while isnan(curr)
                         fprintf(mag, '%s\r', 'R7');
                         curr = fscanf(mag, '%*c%f');
                     end
-
-                    % set the field target
-                    fprintf(mag, '%s\r', ['J' num2str(val)]);
-                    fscanf(mag);
                     
-                    val = abs(val-curr)/abs(rate);
-                    
-                    if rateperminute>0
-        
-                        % go to target field
-                        fprintf(mag, '%s\r', 'A1');
-                        fscanf(mag);
-                      
+                    fprintf(mag, '%s\r', ['J' num2str(val)]); % set the field target
+                    fscanf(mag);                    
+                    val = abs(val-curr)/abs(rate);                    
+                    if rateperminute>0                                
+                        fprintf(mag, '%s\r', 'A1'); % go to target field
+                        fscanf(mag);                      
                         elapsedtime=toc;
                         if elapsedtime>2
                             fclose(mag);

@@ -1,7 +1,12 @@
 function smramp(channels, vals, rates,trignum)
+% function smramp(channels, vals, rates,trignum)
+% Use self ramping drivers w/ smset, allowing smset to qui (useful for long
+% magnet ramps) 
+%Takes vector or cell of channels, vals, rates, but only one trignum
+%possible. Default trignum is 3. 
+
 global smdata
-% Use self ramping drivers w/ smset, allowing smset to quit. Takes vector
-% or cell of channels, vals, rates, but only one trignum possible. 
+
 if ~exist('trignum','var') || isempty(trignum)
     trignum =3;
 end

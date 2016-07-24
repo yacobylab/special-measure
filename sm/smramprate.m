@@ -1,4 +1,8 @@
-function [isgood,rng] = smramprate(scan)
+function [isgood,rng] = smramprate(scan,opts)
+% [isgood,rng] = smramprate(scan,opts)
+if ~exist('opts','var') 
+    opts = ''; 
+end
 global smdata; 
 setchans = scan.loops(1).setchan; 
 if ischar(setchans) 
@@ -8,8 +12,13 @@ end
 channels = smchanlookup(setchans);
 diffPoint = diff(scan.loops(1).rng)/scan.loops(1).npoints;
 rate = abs(diffPoint)./abs(scan.loops(1).ramptime); toofast = 0;
+if isopt(opts,'save') && isfield(scan,'data') && isfield(scan.data,'rangeramp')     
+    maxRate = scan.data.rangeramp; 
+else
+    maxRate = smdata.channels(channels(1)).rangeramp(3);
+end
 for i=1:length(channels)
-    if rate > smdata.channels(channels(i)).rangeramp(3)
+    if rate > maxRate
         toofast = toofast + 1; 
     end        
 end
@@ -36,5 +45,5 @@ if ~isgood
     diffPoint = diffPoint / rescale; 
     rng = scan.loops(1).rng(1)+[0, (scan.loops(1).npoints-1)*diffPoint];
 else 
-    rng = NaN; 
+    rng = scan.loops(1).rng; 
 end

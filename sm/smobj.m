@@ -1,5 +1,13 @@
 function smobj(type,number,smnumber,drvr)
 %function smobj(type,number,smnumber,drvr)
+% Create new instrument objects in your smdata rack 
+% type can be tcpip, serial, gpib, or visa. 
+% number: ip address for tcpip, com # for serial, gpib # for gpib/visa 
+% smnumber adds object to that smdata.inst(smnumber)
+% drvr is optional: for visa/gpib, will have either ni or agilnent. if not
+% given, chooses first installed. 
+% Currently for gpib just uses visa. 
+
 global smdata
 switch type
     case 'tcpip'
@@ -18,7 +26,6 @@ switch type
         if ~exist('drvr','var') || isempty(drvr)
             installedDrivers = instrhwinfo('visa');            
             if ~isempty(installedDrivers)
-%                drvr = installedDrivers{1};
                 drvr = installedDrivers.InstalledAdaptors{1};
             else
                 error('No VISA drivers installed');
@@ -31,7 +38,7 @@ switch type
         if ~exist('drvr','var') || isempty(drvr)
             installedDrivers = instrhwinfo('visa');
             if ~isempty(installedDrivers)
-                drvr = installedDrivers{1};
+                drvr = installedDrivers.InstalledAdaptors{1};
             else
                 error('No VISA drivers installed');
             end

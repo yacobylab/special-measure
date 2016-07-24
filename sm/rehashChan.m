@@ -1,4 +1,11 @@
 function rehashChan(opts)
+% function rehashChan(opts)
+% Connect channels to instruments using strings instead of numbers, so that
+% if smdata reordered, no problems occur. 
+% inst name stored in smdata.channels(i).inst. 
+% to initialize and save inst names, call with 'init'
+% to redo all the isntchans after moving / deleting insts, call with
+% 'rehash'
 global smdata
 
 if ~exist('opts','var') || isempty(opts) || isopt(opts,'rehash')

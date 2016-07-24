@@ -1,9 +1,9 @@
 function smrange(chans,rangeInds,rangeVal)
-% function smrange(chans,rangeVal,rangeInds)
-
+% function smrange(chans,rangeInds,rangeVal)
+% give rangeInds of min, max, rate, or div. (or number, 1-4)
+% for chans, takes list of numbers or cell array of names. 
 global smdata; 
 chans = smchanlookup(chans); 
-
 
 rangeramps = {'Min Val','Max Val','Ramprate','Divider'};
 rangeShort = {'min','max','rate','div'};

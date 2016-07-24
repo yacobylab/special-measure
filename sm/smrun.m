@@ -630,12 +630,16 @@ for i = 1:totpoints
 
     if isfield(scandef,'testfn') && ~isempty(scandef(j).testfn)
             if ~isfield(scandef(j).testfn,'mod') || isempty(scandef(j).testfn.mod) || ~mod(count(j),scandef(j).testfn.mod)
-                testgood = testcall(scandef(j).testfn,xt, data);
+                testgood = testcall(scandef(j).testfn,xt, data,count);
             else 
                 testgood =1; 
-            end
+            end            
     else
-        testgood =1; 
+        testgood =1;         
+    end
+    if testgood == 0 && length(count)>length(loops) &&count(loops(end)+1) < npoints(loops(end)+1)                     
+        count(loops(end))=1; count(loops(end)+1) = count(loops(end)+1)+1; 
+        continue
     end
     figChar = get(figurenumber,'CurrentCharacter'); 
     if (~isempty(figChar) && figChar == char(27)) || testgood == 0
@@ -716,21 +720,21 @@ else
 end
 end
 
-function good = testcall(fn,xt,data)
+function good = testcall(fn,xt,data,count)
 v = zeros(1, length(fn));
 if iscell(fn)
     for i = 1:length(fn)
         if ischar(fn{i})
           fn{i} = str2func(fn{i});
         end
-        v(i) = fn{i}(xt,data);
+        v(i) = fn{i}(xt,data,count);
     end
 else
     for i = 1:length(fn)
         if ischar(fn(i).fn)
           fn(i).fn = str2func(fn(i).fn);
         end
-        v(i) = fn(i).fn(xt,data, fn(i).args{:});
+        v(i) = fn(i).fn(xt,data,fn(i).args{:},count);
     end
 end
 if all(v) == 1

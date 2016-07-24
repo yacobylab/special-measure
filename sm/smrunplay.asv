@@ -77,7 +77,7 @@ if exist('filename','var')
     filename = checkFile(filename); 
     saveData = 1; 
 else 
-    saveData = 0; 
+    saveData = 0 
 end
  % handle setting up self-ramping trigger for inner loop if none is
  % provided 
@@ -307,7 +307,105 @@ for i = 1:nloops
     end
 end
    
+switch length(disp)
+    case 1, subplotSize = [1 1];         
+    case 2, subplotSize = [1 2];
+    case {3, 4},  subplotSize = [2 2];      
+    case {5, 6},  subplotSize = [2 3];        
+    otherwise
+        subplotSize = [3 3];
+        disp(10:end) = [];
+end
 
+% Determine the next available figure after 1000 for this measurement.  A
+% figure is available unless its userdata field is the string 'SMactive'
+if isfield(scan,'figure')
+    figurenumber=scan.figure;
+    if isnan(figurenumber)
+        figurenumber = 1000;
+        while ishandle(figurenumber) && strcmp(get(figurenumber,'userdata'),'SMactive')
+            figurenumber=figurenumber+1;
+        end
+    end
+else
+    figurenumber=1000;
+end
+if ~ishandle(figurenumber);
+    figure(figurenumber)
+    set(figurenumber, 'pos', [10, 10, 800, 400]);
+else
+    figure(figurenumber);
+    clf;
+end
+
+set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
+set(figurenumber, 'CurrentCharacter', char(0));
+
+% default for disp loop
+if ~isfield(disp, 'loop')
+    for i = 1:length(disp)
+        disp(i).loop = dataloop(disp(i).channel)-1;
+    end
+end
+
+s.type = '()';
+for i = 1:length(disp)    
+    subplot(subplotSize(1), subplotSize(2), i);
+    dispchan = disp(i).channel; %index of channel to be displayed    
+    nDimCurr = ndim(dispchan); 
+    
+    % dataloop(dispchan) gives which loop the data is updated on    
+    s.subs = num2cell(ones(1, nloops - dataloop(dispchan) + 1 + nDimCurr));
+    [s.subs{end-disp(i).dim+1:end}] = deal(':');
+    dispXval = dataloop(dispchan) - nDimCurr;  
+    if dispXval < 1 % if this is < 1, don't have channel names or range to associate with x axis. 
+        x = 1:datadim(dispchan, nDimCurr); % instead of range, just find number of data points. 
+        xlab = 'n';
+    else
+        x = scandef(dispXval).rng; % if possible, set the x axis to have range of sweep channel and name of setchan.       
+        if ~isempty(scandef(dispXval).setchan)
+            xlab = smdata.channels(scandef(dispXval).setchan(1)).name;
+        else
+            xlab = '';
+        end
+    end
+
+    if disp(i).dim == 2        
+        if dispXval < 0 % if this is < 0, we don't have channel names to associate with y axis. 
+            y = 1:datadim(dispchan, nDimCurr-1);
+            ylab = 'n';
+        else
+            y = scandef(dispXval + 1).rng;
+            if ~isempty(scandef(dispXval + 1).setchan)
+                ylab = smdata.channels(scandef(dispXval + 1).setchan(1)).name;
+            else
+                ylab = '';
+            end
+        end
+        z = zeros(length(y), length(x));
+        z(:, :) = subsref(data{dispchan}, s);
+        disph(i) = imagesc(x, y, z);
+        %disph(i) = imagesc(x, y, permute(subsref(data{dc}, s), [ndim(dc)+(-1:0), 1:ndim(dc)-2]));
+        
+        set(gca, 'YDir', 'Normal');
+        colorbar;
+        if dispchan <= length(getch)
+            title(smdata.channels(getch(dispchan)).name);
+        end
+        xlabel(xlab);
+        ylabel(ylab);
+    else
+        y = zeros(size(x));
+        y(:) = subsref(data{dispchan}, s);
+        disph(i) = plot(x, y);
+        %permute(subsref(data{dc}, s), [ndim(dc), 1:ndim(dc)-1])
+        xlim(sort(x([1, end])));
+        xlabel(xlab);
+        if dispchan <= length(getch)
+            ylabel(smdata.channels(getch(dispchan)).name);
+        end
+    end
+end  
 
 x = zeros(1, nloops);
 

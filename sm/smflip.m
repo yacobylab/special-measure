@@ -1,4 +1,6 @@
 function scan = smflip(scan,loop)
+%function scan = smflip(scan,loop)
+% flip the direction of the scan on loop 'loop'
 if ~exist('loop','var') || isempty(loop) 
     loop = 1; 
 end

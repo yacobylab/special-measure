@@ -1,4 +1,4 @@
-function val = smctest(ic, val, rate)
+function val = smctestramp(ic, val, rate)
 
 global smdata;
 
@@ -12,7 +12,6 @@ switch ic(3)
         end
     case 0
         val = smdata.inst(ic(1)).data.val(ic(:, 2));
-        %val = 10 * rand(1,1); 
     otherwise
-        warning('Operation not supported');
+        error('Operation not supported');
 end
