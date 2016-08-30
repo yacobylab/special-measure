@@ -6,6 +6,7 @@ function ind = smloadinst(file, ind, adapter, args)
 % args are arguments to the instrument object constructor, e.g. gpib,
 % visa or serial. If not defaults, the settings are taken from the file
 % loaded. (Useful if file was created on the same system).
+% to load the inst but not make an object, give adapter = 'none'; 
 
 global smdata;
 
@@ -14,6 +15,9 @@ if ~exist('file','var') || isempty(file)
 end
 if ~iscell(file)
     file = {file};
+end
+if file{1}==0 
+    return 
 end
 
 if ~exist('ind','var') || isempty(ind)
@@ -24,17 +28,17 @@ if ~exist('ind','var') || isempty(ind)
     end
 end
 
-if isempty(strfind(file, 'sminst'))
+if isempty(strfind(file, 'sminst')) %fix me 
     file = ['sminst_', file];
 end
-
-load(file);
-
+for i = 1:length(file)
+load(file{i});
 if ~isempty(constructor)
     if ~exist('adapter','var') || isempty(adapter) 
-        switch func2str(constructor.fn)
-            case {'gpib', 'visa'}
-               installedDrivers = instrhwinfo('visa');
+        switch func2str(constructor.fn) % Make object. Only works for gpib visa. Maybe rewrite for more types??
+            case {'gpib', 'visa'} 
+               visaInfo = instrhwinfo('visa');
+               installedDrivers = visaInfo.InstalledAdaptors;
                     if ~isempty(installedDrivers)
                         if iscell(installedDrivers)
                             adapter = installedDrivers{1};
@@ -50,27 +54,33 @@ if ~isempty(constructor)
     elseif ~iscell(adapter)
         adapter = {adapter};
     end
-    if ~strcmp(adapter, 'none')
+    if ~strcmp(adapter, 'none')     % Make instrument object. 
         if nargin >= 4
             constructor.args = args;
-        end
-        
+        end        
         inst.data.inst = constructor.fn(adapter{:}, constructor.args{:});
         set(inst.data.inst, constructor.params, constructor.vals) ;
     end
 end
-if exist('channels','var') 
-    if isfield(smdata.channels) 
-        smdata.channels(chaninds) = channels; 
-        smdata.channels(chaninds).instchan(1) = ind; 
-    else
-        
+if exist('channels','var') % how to make it so it only adds channels if you want...?     
+    if isfield(smdata,'channels')
+        smdata.channels(end+1:end+length(channels)) = channels; 
+        for j = 1:length(channels)
+            smdata.channels(end-j+1).instchan(1) = ind;                 
+        end
+    else 
+        smdata.channels(1:length(channels)) = channels; 
+        for j = 1:length(channels)
+            smdata.channels(j).instchan(1) = ind;                 
+        end
     end
 end
+
 if isfield(smdata,'inst') && length(smdata.inst) >= ind
     warning('Overwriting instrument')
 end
 
 smdata.inst(ind) = inst;
-
 smcheckdata;
+
+end

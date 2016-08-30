@@ -333,7 +333,6 @@ switch length(disp)
         disp(10:end) = [];
 end
 
-
 % determine the next available figure after 1000 for this measurement.  A
 % figure is available unless its userdata field is the string 'SMactive'
 if isfield(scan,'figure')
@@ -347,7 +346,7 @@ if isfield(scan,'figure')
 else
     figurenumber=1000;
 end
-if ~ishandle(figurenumber);
+if ~ishandle(figurenumber)
     figure(figurenumber)
     set(figurenumber, 'pos', [10, 10, 800, 400]);
 else
@@ -355,12 +354,10 @@ else
     clf;
 end
 
-
 set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
 set(figurenumber, 'CurrentCharacter', char(0));
 
-% default for disp loop
-if ~isfield(disp, 'loop')
+if ~isfield(disp, 'loop') % default for disp loop
     for i = 1:length(disp)
         disp(i).loop = dataloop(disp(i).channel)-1;
     end

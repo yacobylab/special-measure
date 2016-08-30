@@ -12,9 +12,7 @@ function [nextstr,nextnum]=smnext(name, opts)
 global smn_lastname; 
 global smn_lastfile;
 global smn_lastnum;
-if mod(smn_lastnum,9)==0
-    fprintf('Plot! \n')
-end
+
 if exist('name','var')
     name=[name '_'];
 else

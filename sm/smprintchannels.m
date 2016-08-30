@@ -14,7 +14,7 @@ end
 fmt = '%2d   %-10s  %-10s  %-12s  %-10s %-7s %-4s \n';
 fprintf(['CH', fmt(4:end)], 'Name', 'Device', 'Dev. Name', 'Dev. Ch.','Ramping','Dim');
 fprintf([repmat('-', 1, 70), '\n']);
-for i = ch;
+for i = ch
     ic = smdata.channels(i).instchan;
     if ic(1) > length(smdata.inst) 
         fprintf('%2d %-10s BORKED: refers to an instrument that doesn''t exist\n',i,smdata.channels(i).name);

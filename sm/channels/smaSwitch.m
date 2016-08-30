@@ -5,6 +5,10 @@ function smaSwitch(chanConn,opts)
 % chanIn will usually be lock in channels, ground, or open.
 % possible opts: ground, open, print
 global smdata
+if ischar(chanConn) 
+    opts = chanConn; 
+    chanConn = ''; 
+end
 if ~exist('opts','var')
     opts = '';
 end

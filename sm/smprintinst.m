@@ -1,11 +1,13 @@
 function smprintinst(inst,opts)
 % function smprintinst(inst)
 % Print information about instruments inst (Default all).
+% if full 
 % If inst is a single instrument, the avialable channels are printed.
+global smdata;
+
 if ~exist('opts','var') 
     opts = '';     
 end
-global smdata;
 
 if ~exist('inst','var') || isempty(inst)
     inst = 1:length(smdata.inst);
@@ -23,7 +25,7 @@ else
     fprintf([repmat('-', 1, 70), '\n']);
 end
 
-for i = inst;
+for i = inst
     if isopt(opts,'full')
         if isfield(smdata.inst(i),'data') && isfield(smdata.inst(i).data,'inst') && ~isempty(smdata.inst(i).data.inst)%&& isfield(smdata.inst(i).data.inst,'type')
             instType = smdata.inst(i).data.inst.type;

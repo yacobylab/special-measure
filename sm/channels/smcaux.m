@@ -10,8 +10,7 @@ switch ico(2)
         switch ico(3)      
             case 0
                 val = now;
-
             otherwise
-                error('Operation not supported');
+                warning('Operation not supported');
         end
 end

@@ -11,7 +11,7 @@ if ~isfield(scan.loops, 'ramptime')
      [scan.loops.ramptime] = deal([]);
 end
 
-if isfield(scan,'consts') 
+if isfield(scan,'consts') && ~isempty(scan.consts)
     fprintf('Consts: \n')
     for i = 1 :length(scan.consts) 
         fprintf('    %g: %s = %g \n', i, scan.consts(i).setchan,scan.consts(i).val);
@@ -87,16 +87,39 @@ for i = 1:length(scan.loops)
         scan.loops(i).ramptime = nan(length(ch), 1);
     end
     
-    fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n\n', ...
+    fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n', ...
         i, scan.loops(i).rng([1, end]), scan.loops(i).npoints);
     if ~isempty(ch)
     fprintf('Channels set : ')
     fprintf('%-15s ', smdata.channels(ch).name);
     end
-    if ~isempty(scan.loops(i).ramptime)
+    if ~isempty(scan.loops(i).ramptime) && all(~isnan(scan.loops(i).ramptime))
     fprintf('\nRamptimes    : ')
-    fprintf('%-4.2d s/point    ', scan.loops(i).ramptime);
+    fprintf('%-4.4f s/point    ', scan.loops(i).ramptime);
     end
+    
+    try
+    ch = smchanlookup(scan.loops(i).getchan);
+end
+if ~isempty(ch)
+    fprintf('\nChannels read: ')
+    fprintf('%-15s ', smdata.channels(ch).name);
+    fprintf('\n');
+else
+    if iscell(scan.loops(i).getchan) && length(scan.loops(i).getchan) > 0
+        fprintf('\nChannels read: ')
+        for j = 1:length(scan.loops(i).getchan)
+            fprintf('%-15s ', scan.loops(i).getchan{j});
+        end
+        fprintf('\n');
+    elseif ischar(scan.loops(i).getchan) && ~isempty(scan.loops(i).getchan)
+        fprintf('\nChannels read: ')
+        fprintf('%-15s ', scan.loops(i).getchan);
+        fprintf('\n');
+    end
+end
+   
+    
     if isfield(scan.loops(i), 'trafofn')&&~isempty(scan.loops(i).trafofn)
         fprintf('\nTransform''s  : ')
         for j = 1:length(scan.loops(i).trafofn)
@@ -112,11 +135,11 @@ for i = 1:length(scan.loops)
                 else
                     fprintf('%-15s ', func2str(scan.loops(i).trafofn(j).fn));
                 end
-            end
+            end            
         end
+        fprintf('\n'); 
     end
-      
-    fprintf('\n');
+         
     try
     scanfn(scan,i);
     end
@@ -145,7 +168,7 @@ for i = 1:length(scan.loops)
     if isfield(scan.loops(i),'trigfn')&&~isempty(scan.loops(i).trigfn)
         fprintf('trigfn:')
         for k = 1:length(scan.loops(i).trigfn)
-            fprintf('    %s, args: ',k,func2str(scan.loops(i).trigfn(k).fn))
+            fprintf('    %s, args: ',func2str(scan.loops(i).trigfn(k).fn))
             for j = 1:length(scan.loops(i).trigfn(k).args)
                 if ischar(scan.loops(i).trigfn(k).args{j})
                     fprintf('%s ',scan.loops(i).trigfn(k).args{j});
@@ -157,13 +180,8 @@ for i = 1:length(scan.loops)
             fprintf('\n')
         end
     end
-    
+    fprintf('\n');
 end
-ch = smchanlookup(scan.loops(i).getchan);
-if ~isempty(ch)
-    fprintf('\nChannels read: ')
-    fprintf('%-15s ', smdata.channels(ch).name);
-end
-fprintf('\n\n');
+
 end
 

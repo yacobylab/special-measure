@@ -1,4 +1,4 @@
-function [isgood,rng] = smramprate(scan,opts)
+function [isgood,rng,rate] = smramprate(scan,opts)
 % [isgood,rng] = smramprate(scan,opts)
 if ~exist('opts','var') 
     opts = ''; 
@@ -35,7 +35,7 @@ end
 isgood = 1; 
 if toofast 
     if buff || selframp 
-        fprintf('Ramping too fast and may get wrong data \n')
+        %fprintf('Ramping too fast and may get wrong data \n')
         isgood = 0;
     end
 end
