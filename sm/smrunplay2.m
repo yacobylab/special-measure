@@ -175,7 +175,7 @@ for i = 1:nloops
 end
 
 for i = 1:totpoints % Whenever inner loop reset to 1, update next outer loop. Start with outer loops and work inward.     
-    if i > 1; % setLoops is the list of loops to update on this ind. 
+    if i > 1 % setLoops is the list of loops to update on this ind. 
         outerUpdatingLoop = find(count > 1,1); % indices of loops to be updated. 1 = fastest loop
         setLoops = 1:outerUpdatingLoop;       
     else
@@ -190,7 +190,7 @@ for i = 1:totpoints % Whenever inner loop reset to 1, update next outer loop. St
     end
     
     activeLoops = setLoops(~isdummy(setLoops) | count(setLoops)==1);              % exclude dummy loops with nonzero count
-    for j = fliplr(activeLoops)    %Go from outerloops in. 
+    for j = fliplr(activeLoops)    % Go from outerloops in. 
         firstPtLoop = count(j)==1;
         setVal = trafocall(scandef(j).trafofn, setValL, smdata.chanvals);        
         autochan = scandef(j).ramptime < 0; %channels that ramp themself selves 
@@ -349,7 +349,7 @@ else
 end
 if all(v) == 1
     good =1; 
-else good = 0; 
+else, good = 0; 
 end
 end
 

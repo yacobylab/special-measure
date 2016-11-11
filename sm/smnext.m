@@ -44,17 +44,11 @@ end
 % correct, look at all the files in directory and find largest number, then
 % increment to get next number. 
 if search
-    files=dir('sm*.mat');
-    files=regexp({files.name},'[0123456789]*\.mat','match');
-    if isempty(files)        
-        nextnum = 1; 
-    else
-        nums(length(files))=0;    
-        for i=1:length(files)
-            nums(i)=max([0 sscanf(files{i}{1},'%d.mat')]);
-        end
-        nextnum=max(nums)+1;
-    end
+    files = dir('sm*.mat');
+    numsCell=regexp([files.name],'(\d{4}).mat','tokens');
+    nums = cellfun(@str2num,[numsCell{:}]);
+    lastnum = max(nums); 
+    nextnum = lastnum+1;     
 end
 
 nextstr=sprintf('%s%04d',name,nextnum);

@@ -117,7 +117,7 @@ if ~isempty(stepchan)
     for i = 1:max(nstep)
         tstep = now;
         currVals = currVals + sizeStep;        
-        for k = stepchan(i <= nstep)'; % chans that haven't reach final value
+        for k = stepchan(i <= nstep)' % chans that haven't reach final value
             smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], currVals(k));
         end
         

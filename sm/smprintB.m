@@ -18,35 +18,48 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
     end
 end
 
-if isfield(scan,'configfn')&&~isempty(scan.configfn) 
-    fprintf('Configfns: \n') 
-    for i = 1:length(scan.configfn) 
-        fprintf('    %g: fn: %s, args: ',i,func2str(scan.configfn(i).fn)) 
-        for j = 1:length(scan.configfn(i).args)
-            if ischar(scan.configfn(i).args{j})
-            fprintf('%s ',scan.configfn(i).args{j}); 
-            else
-                fprintf('%g ',scan.configfn(i).args{j}); 
-            end
-        end
-        fprintf('\n')
+if isfield(scan,'configfn')&&~isempty(scan.configfn)
+    fprintf('Configfns: \n')
+    for i = 1:length(scan.configfn)
+        fprintf('    %g: fn: %s, args: ',i,func2str(scan.configfn(i).fn))
+        printFmt(scan.configfn(i).args)
+%         for j = 1:length(scan.configfn(i).args)
+%             if ischar(scan.configfn(i).args{j})
+%                 fprintf(' %s',scan.configfn(i).args{j});
+%             elseif isnumeric(scan.configfn(i).args{j})
+%                 fprintf(' %g',scan.configfn(i).args{j});
+%             elseif isa(scan.configfn(i).args{j},'function_handle')
+%                 fprintf(' %s',func2str(scan.configfn(i).args{j}));
+%             else
+%                 warning('Arg is not a number, string or func')
+%             end
+%             fprintf(',');
+%         end
     end
+    fprintf('\n')
 end
-try
+
 if isfield(scan,'cleanupfn')&& ~isempty(scan.cleanupfn) 
     fprintf('cleanupfn: \n') 
     for i = 1:length(scan.cleanupfn) 
         fprintf('    %g: fn: %s, args: ',i,func2str(scan.cleanupfn(i).fn)) 
-        for j = 1:length(scan.cleanupfn(i).args)
-            if ischar(scan.cleanupfn(i).args{j})
-                fprintf('%s ',scan.cleanupfn(i).args{j}); 
-            else 
-                fprintf('%g ',scan.cleanupfn(i).args{j}); 
-            end            
-        end
-        fprintf('\n')
+        printFmt(scan.cleanupfn(i).args)
+%         for j = 1:length(scan.cleanupfn(i).args)
+%             if ischar(scan.cleanupfn(i).args{j})
+%                 fprintf(' %s',scan.cleanupfn(i).args{j}); 
+%             elseif isnumeric(scan.cleanupfn(i).args{j})
+%                 fprintf(' %g',scan.cleanupfn(i).args{j});
+%             elseif isa(scan.cleanupfn(i).args{j},'function_handle')
+%                 fprintf(' %s',func2str(scan.cleanupfn(i).args{j}));
+%             elseif iscell(scan.cleanupfn(i).args{j})
+%             %    celldisp(scan.cleanupfn(i).args{j});
+%             else
+%                 error('Arg is not a number, string or func')
+%             end         
+%             fprintf(',');
+%         end
+         fprintf('\n')
     end
-end
 end
 
 if isfield(scan,'disp')&&~isempty(scan.disp) 

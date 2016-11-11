@@ -9,19 +9,18 @@ function [val, rate] = smcSR830(ic, val, rate, ctrl)
 % 18: overload 
 
 global smdata;
-
-cmds = {'OUTP 1', 'OUTP 2', 'OUTP 3', 'OUTP 4', 'FREQ', 'SLVL', ...
-    'OAUX 1', 'OAUX 2', 'OAUX 3', 'OAUX 4', 'AUXV 1', 'AUXV 2', 'AUXV 3', 'AUXV 4' ...
-    ,'','','SENS', 'OFLT', 'SYNC'};
+        
+cmds = {'OUTP 1', 'OUTP 2', 'OUTP 3', 'OUTP 4', 'FREQ', 'SLVL', 'OAUX 1', 'OAUX 2',...
+'OAUX 3','OAUX 4', 'AUXV 1', 'AUXV 2', 'AUXV 3', 'AUXV 4','','','SENS', 'OFLT', 'SYNC'};
 
 switch ic(2) % Channel
-    case {15, 16} % stored data, length determined by datadim
+    case {15, 16} % Stored data, length determined by datadim
         switch ic(3)
             case 0  % get              
                 npts = smdata.inst(ic(1)).datadim(ic(2), 1);
                 while 1
                     navail = query(smdata.inst(ic(1)).data.inst, 'SPTS?', '%s\n', '%d');
-                    if navail >= npts + smdata.inst(ic(1)).data.currsamp;
+                    if navail >= npts + smdata.inst(ic(1)).data.currsamp
                         break;
                     else
                         pause(0.8 * (npts + smdata.inst(ic(1)).data.currsamp - navail) ...
@@ -49,11 +48,7 @@ switch ic(2) % Channel
                         error('Samplerate not supported by SR830');
                     end
                 end
-                %if strfind(ctrl, 'trig')
                 fprintf(smdata.inst(ic(1)).data.inst, 'REST; SEND 1; TSTR 1; SRAT %i', n);
-                %else
-                %    fprintf(smdata.inst(ic(1)).data.inst, 'REST; SEND 1; TSTR 0; SRAT %i', n);
-                %end
                 pause(.1);
                 smdata.inst(ic(1)).data.currsamp = 0;
                 smdata.inst(ic(1)).data.sampint = 1/rate;
@@ -71,8 +66,7 @@ switch ic(2) % Channel
                 end
                 fprintf(smdata.inst(ic(1)).data.inst, sprintf('%s %f', cmds{ic(2)}, val));
             case 0 % get
-                val = query(smdata.inst(ic(1)).data.inst, sprintf('%s? %s',...
-                    cmds{ic(2)}(1:4), cmds{ic(2)}(5:end)), '%s\n', '%f');
+                val = query(smdata.inst(ic(1)).data.inst, sprintf('%s? %s',cmds{ic(2)}(1:4), cmds{ic(2)}(5:end)), '%s\n', '%f');
                 if ic(2)==17
                     val = SR830sensvalue(val);
                 elseif ic(2)==18
@@ -108,4 +102,3 @@ function tauindex = SR830tauindex(tauval)
 x = [10e-6 30e-6];
 tauvals = [x 1e1*x 1e2*x 1e3*x 1e4*x 1e5*x 1e6*x 1e7*x 1e8*x 1e9*x];
 tauindex = find(tauvals >= tauval,1)-1;
-        
