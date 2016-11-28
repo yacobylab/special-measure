@@ -9,7 +9,7 @@ if ~exist('file','var') || isempty(file)
     file=uigetfile('');
 end
 load(file, 'configvals', 'configch');
-configch = smchanlookup(configch);
+configch = smchanlookup(configch); %#ok<*NODEF>
 if exist('channels','var') && ~isempty(channels)
     channels = smchanlookup(channels);
     if ~all(ismember(channels, configch))

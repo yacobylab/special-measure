@@ -121,8 +121,7 @@ switch ico(3)
         % val passed by smabufconfig2 is npoints in the scan, usually npulses*nloop. 
         % rate passed by smabufconfi2 is 1/pulselength        
         if ~exist('val','var'),   return;     end               
-        nchans=2; chanInds=[1 2]; %Alazar refers to chans 1:4 as 1,2,4,8 
-        smdata.inst(ico(1)).data.chan = chanInds(ico(2));
+        nchans=2;
         daqfn('AbortAsyncRead', boardHandle);                               
         if smdata.inst(ico(1)).data.samprate > 0  % Find downsamp value -- number of points averaged together.
             samprate = smdata.inst(ico(1)).data.samprate; 

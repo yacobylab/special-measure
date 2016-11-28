@@ -1,5 +1,5 @@
 function smprint(scan)
-% function smprintscan(scan)
+% function smprint(scan)
 
 global smdata;
 
@@ -159,9 +159,16 @@ end
     if isfield(scan.loops(i),'prefn')&&~isempty(scan.loops(i).prefn)
         fprintf('prefn: \n')
         for k = 1:length(scan.loops(i).prefn)
-            fprintf('    %g: fn: %s, args: ',k,func2str(scan.loops(i).prefn(k).fn))
+            if ~ischar(scan.loops(i).prefn(k).fn) 
+                fn = func2str(scan.loops(i).prefn(k).fn); 
+            else
+                fn = scan.loops(i).prefn(k).fn; 
+            end
+            fprintf('    %g: fn: %s, args: ',k,fn)
             for j = 1:length(scan.loops(i).prefn(k).args)
+                try
                 fprintf('%g ',scan.loops(i).prefn(k).args{j});
+                end
             end
             fprintf('\n')
         end

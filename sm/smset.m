@@ -23,7 +23,6 @@ if isempty(channels),  return
 end
 
 if ~isnumeric(channels), 
-    chanNames = channels; 
     channels = smchanlookup(channels);  
 end
 nchans = length(channels);
@@ -38,7 +37,7 @@ end
 rangeramp = vertcat(smdata.channels(channels).rangeramp);
 instchan = vertcat(smdata.channels(channels).instchan);
 
-if exist('ramprate','var') && ~isempty(ramprate) % if ramprate given: 
+if exist('ramprate','var') && ~isempty(ramprate) 
     if size(ramprate, 2) > 1
         ramprate = ramprate';
     end
@@ -70,9 +69,10 @@ end
 valsScaled = vals .* rangeramp(:, 4); % scale vals by multiplier 
 ramprate = ramprate .* rangeramp(:, 4); % scale ramprate by multiplier
 
-currVals = zeros(nchans, 1);
 chantype = zeros(nchans, 1);
 ramptime = zeros(nchans, 1);
+currVals = zeros(nchans, 1);
+sizeStep = zeros(nchans, 1);
 
 % Check which channels can be ramped - chantype = 1 is ramping. 
 for k = 1:nchans
@@ -112,8 +112,8 @@ dt = .01;
 % function. 
 if ~isempty(stepchan)
     dirStep = (2 * (valsScaled(stepchan) > currVals(stepchan)) - 1); % direction of step. (final value > init, dirStep = 1)
-    sizeStep = dt * ramprate(stepchan) .* dirStep; 
-    nstep = floor((valsScaled(stepchan)-currVals(stepchan))./sizeStep);
+    sizeStep(stepchan) = dt * ramprate(stepchan) .* dirStep; 
+    nstep = floor((valsScaled(stepchan)-currVals(stepchan))./sizeStep(stepchan));
     for i = 1:max(nstep)
         tstep = now;
         currVals = currVals + sizeStep;        

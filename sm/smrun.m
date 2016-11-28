@@ -174,9 +174,9 @@ end
 
 for i = 1:nloops
     % If only have one of npoints, rng, can make up the rest. 
-    if isempty(scandef(i).npoints)     
+    if ~isfield(scandef,'npoints') || isempty(scandef(i).npoints)     
         scandef(i).npoints = length(scandef(i).rng);
-    elseif isempty(scandef(i).rng)        
+    elseif ~isfield(scandef,'rng') || isempty(scandef(i).rng)        
         scandef(i).rng = 1:scandef(i).npoints;
     else
         scandef(i).rng = linspace(scandef(i).rng(1), scandef(i).rng(end),   scandef(i).npoints);
@@ -606,11 +606,12 @@ for i = 1:totpoints
                       if ~(diff(rng)==0)
                       disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
                       end
-                  end                    
-            else                
+                  end
+            else
                 set(disph(k), 'YData', subsref(data{dc}, s2));
             end
-            drawnow;            
+            drawnow;
+
         end
 
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
