@@ -271,7 +271,7 @@ for i = 1:totpoints % Whenever inner loop reset to 1, update next outer loop. St
     end
 end
 
-scan = scanfn(scan,'cleanupfn');      
+scan = scanfn(scan,'cleanupfn');       %#ok<*NASGU>
 set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
 if saveData
     save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
@@ -358,13 +358,19 @@ switch funcName
     case 'config'
         if isfield(scan, 'configfn')
             for i = 1:length(scan.configfn)
+                if ~isfield(scan.configfn,'args') || isempty(scan.configfn(i).args)
+                    scan.configfn(i).args = {}; 
+                end
                 scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
             end
         end
     case 'cleanup'
         if isfield(scan, 'cleanupfn')
-            for k = 1:length(scan.cleanupfn)
-                scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
+            for i = 1:length(scan.cleanupfn)
+                if ~isfield(scan.cleanupfn,'args') || isempty(scan.cleanupfn(i).args)
+                    scan.cleanupfn(i).args = {}; 
+                end
+                scan = scan.cleanupfn(i).fn(scan, scan.cleanupfn(i).args{:});
             end
         end
     case 'prefn'

@@ -127,7 +127,7 @@ ngetchan = zeros(1, nloops);
 % will be setchanranges{1}, and the channel values will be determined by linear
 % mapping of this range onto the desired range for each channel.
 for i=1:length(scandef)
-    if isfield(scandef(i),'setchanranges')
+    if isfield(scandef(i),'setchanranges') && ~isempty(scandef(i).setchanranges)
         scandef(i).rng=scandef(i).setchanranges{1};
         for j=1:length(scandef(i).setchanranges)
             setchanranges = scandef(i).setchanranges{j};
@@ -601,65 +601,64 @@ for i = 1:totpoints
                 z = zeros(dim(end-1:end));
                 z(:, :) = subsref(data{dc}, s2);
                 set(disph(k), 'CData', z);
-                  if ~isempty(disph(k).CData)
-                      rng = [min(disph(k).CData(:)), max(disph(k).CData(:))]; 
-                      if ~(diff(rng)==0)
-                      disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
-                      end
-                  end
+                if ~isempty(disph(k).CData)
+                    rng = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                    if ~(diff(rng)==0)
+                        disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                    end
+                end
             else
                 set(disph(k), 'YData', subsref(data{dc}, s2));
             end
             drawnow;
-
         end
-
+        
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2
             save(filename, '-append', 'data');
         end
-               
+        
         if isfield(scandef, 'datafn')
             fncall(scandef(j).datafn, xt, data);
         end
-
-    end
-    %update counters
-    count(loops(1:end-1)) = 1;  count(loops(end)) =  count(loops(end)) + 1;
-
-    if isfield(scandef,'testfn') && ~isempty(scandef(j).testfn)
+        if isfield(scandef,'testfn') && ~isempty(scandef(j).testfn)
             if ~isfield(scandef(j).testfn,'mod') || isempty(scandef(j).testfn.mod) || ~mod(count(j),scandef(j).testfn.mod)
                 testgood = testcall(scandef(j).testfn,xt, data,count);
-            else 
-                testgood =1; 
-            end            
-    else
-        testgood =1;         
-    end
-    if testgood == 0 && length(count)>length(loops) &&count(loops(end)+1) < npoints(loops(end)+1)                     
-        count(loops(end))=1; count(loops(end)+1) = count(loops(end)+1)+1; 
-        continue
-    end
-    figChar = get(figurenumber,'CurrentCharacter'); 
-    if (~isempty(figChar) && figChar == char(27)) || testgood == 0
-        if isfield(scan, 'cleanupfn')
-            for k = 1:length(scan.cleanupfn)
-                scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
+            else
+                testgood =1;
             end
+        else
+            testgood =1;
         end
         
-        if nargin >= 2
-            save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
+        if testgood == 0 && length(count)>length(loops) &&count(loops(end)+1) < npoints(loops(end)+1)
+            count(loops(end))=1; count(loops(end)+1) = count(loops(end)+1)+1;
+            continue
         end
-        %set(figurenumber, 'CurrentCharacter', char(0));
-        set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
-        return;
-    end
-        
-    if figChar == ' '
+        figChar = get(figurenumber,'CurrentCharacter');
+        if (~isempty(figChar) && figChar == char(27)) || testgood == 0
+            if isfield(scan, 'cleanupfn')
+                for k = 1:length(scan.cleanupfn)
+                    scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
+                end
+            end
+            
+            if nargin >= 2
+                save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')
+            end
+            set(figurenumber, 'CurrentCharacter', char(0));
+            set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
+            return;
+        end
+        if figChar == ' '
         set(figurenumber, 'CurrentCharacter', char(0));
         fprintf('Measurement paused. Type ''return'' to continue.\n')
         evalin('base', 'keyboard');                
     end
+        
+    end
+    %update counters
+    count(loops(1:end-1)) = 1;  count(loops(end)) =  count(loops(end)) + 1;    
+            
 end
 
 if isfield(scan, 'cleanupfn')

@@ -13,6 +13,7 @@ switch ic(3)
     case 0
         val = smdata.inst(ic(1)).data.val(ic(:, 2));
         %val = 10 * rand(1,1); 
+    case 3         
     otherwise
         warning('Operation not supported');
 end

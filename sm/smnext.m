@@ -4,7 +4,7 @@ function [nextstr,nextnum]=smnext(name, opts)
 % prepended to the number with an _ inbetween, copying filename to cut
 % buffer. 
 % opts = 'quiet' will not print next filename to cmd line
-% opts = 'nocutbuffer' prevents coyping name.
+% opts = 'nocutbuffer' prevents copying name.
 % Only works if you are saving files in the current directory. 
 % If not using with smrun, necessary to preface file with sm_, as in 
 % save(['sm_' smnext('filename')],'data')

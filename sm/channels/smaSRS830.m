@@ -3,7 +3,7 @@ function config=smaSRS830(ico,config)
 % config.opts : def, sets floating shield, ac coupling, no line filter,
 % normal reserve, 24 db fitlering, sync filter on.
 % possibilities are meas, shield, couple, line, reserve, filter, sync, ref 
-
+% can also readout any current flags. 
 global smdata;
 if ischar(ico) || iscell(ico) 
     ico = sminstlookup(ico); 

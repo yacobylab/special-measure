@@ -22,12 +22,12 @@ global smdata;
 if isempty(channels),  return
 end
 
-if ~isnumeric(channels), 
+if ~isnumeric(channels)
     channels = smchanlookup(channels);  
 end
 nchans = length(channels);
 
-if size(vals, 2) > 1,
+if size(vals, 2) > 1
     vals = vals';
 end
 if length(vals) == 1 %if many channels and one value given, all get same value. 
