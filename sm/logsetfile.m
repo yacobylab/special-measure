@@ -6,13 +6,12 @@ function logsetfile(index, file)
 
 global loginfo;
 
-if nargin < 2
+if ~exist('file','var')
     file = index;
     index = 1;
 end
 
-if length(loginfo) < index || isempty(loginfo(index).logfile) ...
-        || ~strcmp(loginfo(index).logfile, file)
+if length(loginfo) < index || isempty(loginfo(index).logfile) || ~strcmp(loginfo(index).logfile, file)
     % larger list, new file or different file
     loginfo(index).logfile = file;
     loginfo(index).lastdate = [];

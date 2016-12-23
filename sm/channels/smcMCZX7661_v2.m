@@ -17,10 +17,10 @@ function val = smcMCZX7661_v2(ico,val,~)
 
    global smdata;
    if ico(2)~=1
-       error('channel must be = 1');
+       error('Channel must be = 1');
    end
     switch ico(3)
-       case 0
+       case 0 % read 
            val = sum([smdata.inst(ico(1)).data.config().val].*[smdata.inst(ico(1)).data.config().atten]);
        case 1
            % TODO: see if val is inside of allowed range, if not, peg it
@@ -62,10 +62,8 @@ function val = smcMCZX7661_v2(ico,val,~)
         case 4 % configure the lines and latch as outputs
             for j = [[smdata.inst(ico(1)).data.config.line],smdata.inst(ico(1)).data.latch]
                query(smdata.inst(ico(1)).data.inst,sprintf('O%i;',j)); 
-            end
-    
-            
+            end                
        otherwise
-            error('operation not supported');
+            error('Operation not supported');
    end
 end

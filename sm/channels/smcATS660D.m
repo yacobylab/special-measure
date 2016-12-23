@@ -7,8 +7,8 @@ function [val, rate] = smcATS660D(ico, val, rate, varargin)
 % ico(2) = 7; 7th chan is the new flag for number of pulses in group
     % this is used for groups w pulses of multiple lengths
 global smdata;
-nbits = 24; 
-bufferPost = uint32(16); % number of buffers to post 
+nbits = 16; 
+bufferPost = uint32(24); % number of buffers to post 
 boardHandle = smdata.inst(ico(1)).data.handle; 
 if ~isfield(smdata.inst(ico(1)).data,'combine') || isempty(smdata.inst(ico(1)).data.combine)
     combine = @(x) mean(x,1);

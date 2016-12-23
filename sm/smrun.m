@@ -142,7 +142,6 @@ if ~isfield(scandef, 'npoints'),   [scandef.npoints] = deal([]); end
 if ~isfield(scandef, 'trafofn'),   [scandef.trafofn] = deal({}); end
 if ~isfield(scandef, 'procfn'),    [scandef.procfn] = deal([]);  end
 if ~isfield(scandef, 'ramptime'),  [scandef.ramptime] = deal([]); end
-if ~isfield(scan, 'trafofn'),      scan.trafofn = {};           end
 
 if ~isfield(scan, 'saveloop')
     scan.saveloop = [2 1];
@@ -424,8 +423,6 @@ for i = 1:length(disp)
     end
 end  
 
-x = zeros(1, nloops);
-
 if isfield(scan,'configch')
   configvals = cell2mat(smget(scan.configch));    
 else
@@ -471,13 +468,8 @@ for i = 1:totpoints
     end       
     
     for j = loops
-        x(j) = scandef(j).rng(count(j));
-    end
-
-    xt = x;  
-    for k = 1:length(scan.trafofn)
-        xt = trafocall(scan.trafofn(k), xt);
-    end
+        xt(j) = scandef(j).rng(count(j));
+    end        
 
     for j = fliplr(loops(~isdummy(loops) | count(loops)==1)) % exclude dummy loops after first point 
         val = trafocall(scandef(j).trafofn, xt, smdata.chanvals);        
@@ -496,11 +488,8 @@ for i = 1:totpoints
                 if isfield(scandef(j),'settle') && ~isempty(scandef(j).settle) && scandef(j).settle ~= 0
                     pause(scandef(j).settle)
                 end
-                x2 = x;
+                x2 = xt;
                 x2(j) = scandef(j).rng(end);
-                for k = 1:length(scan.trafofn)
-                    x2 = trafocall(scan.trafofn(k), x2);
-                end
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
 
@@ -635,7 +624,7 @@ for i = 1:totpoints
             continue
         end
         figChar = get(figurenumber,'CurrentCharacter');
-        if (~isempty(figChar) && figChar == char(27)) || testgood == 0
+        if (~isempty(figChar) && (figChar == char(27) || figChar == 'z')) || testgood == 0
             if isfield(scan, 'cleanupfn')
                 for k = 1:length(scan.cleanupfn)
                     scan = scan.cleanupfn(k).fn(scan, scan.cleanupfn(k).args{:});
@@ -650,11 +639,10 @@ for i = 1:totpoints
             return;
         end
         if figChar == ' '
-        set(figurenumber, 'CurrentCharacter', char(0));
-        fprintf('Measurement paused. Type ''return'' to continue.\n')
-        evalin('base', 'keyboard');                
-    end
-        
+            set(figurenumber, 'CurrentCharacter', char(0));
+            fprintf('Measurement paused. Type ''return'' to continue.\n')
+            evalin('base', 'keyboard');            
+        end        
     end
     %update counters
     count(loops(1:end-1)) = 1;  count(loops(end)) =  count(loops(end)) + 1;    

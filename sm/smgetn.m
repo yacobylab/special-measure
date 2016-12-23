@@ -1,5 +1,6 @@
 function [val,mval] = smgetn(channel,n,rate) 
-% 
+% function [val,mval] = smgetn(channel,n,rate) 
+
 
 
 for i = 1:n 
