@@ -133,8 +133,10 @@ for i = 1:nloops
 end
 
 [scandef,data,datadim,ndim,dataloop,ngetchan] = initProc(scandef);
+simploop=scan.loops; 
 scan.loops = scandef; 
 [disp,figurenumber] = initDisp(scan,dataloop,ndim,datadim,data);
+scan.loops = simploop; 
 npoints = [scandef.npoints];
 totpoints = prod(npoints);
 ramprate = cell(1, nloops);

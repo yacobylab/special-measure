@@ -98,6 +98,9 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
         if scan.consts(i).set
             setchans{end+1}=scan.consts(i).setchan;
             setvals(end+1)=scan.consts(i).val;
+            if isfield(scan.consts,'pls') && ~isempty('pls')
+                setvals(end) = awgseqind(scan.consts(i).val); 
+            end
         end
     end
     smset(setchans, setvals);
@@ -463,7 +466,7 @@ end
 loops = 1:nloops; % indices of loops to be updated. 1 = fastest loop
 for i = 1:totpoints    
     % update a loop if all faster loops are at first val
-    if i > 1;
+    if i > 1
         loops = 1:find(count > 1, 1);        
     end       
     

@@ -49,11 +49,11 @@ switch ico(3) % operation
         newSetPoint(chan) = val;        
         if ~isFieldSafe(newSetPoint) 
             error('Unsafe field requested. Are you trying to kill me?');
-        end                %check that we are setting to a good value
+        end  %check that we are setting to a good value
         if ~ispathsafe(oldFieldVal,newSetPoint)
             error('Path from current to final B goes outside of allowed range');
-        end                % check that the path is ok
-        if abs(ratePerMinute) > maxRate;
+        end  % check that the path is ok
+        if abs(ratePerMinute) > maxRate
             error('Magnet ramp rate of %f too high. Must be less than %f T/min',ratePerMinute,maxRate)
         end
         if ratePerMinute<0
@@ -75,7 +75,7 @@ switch ico(3) % operation
                 val = abs(norm(oldFieldVal-newSetPoint)/abs(rate));
             end
         end      
-        if ~heaterOn,   goPers(obj);   end 
+        if heaterOn,   goPers(obj);   end 
             
     case 3        
         % go to target field        
@@ -106,15 +106,16 @@ function out = isMagPersist(obj)
 %Check if all switch heaters off
 state = nan(1,3); chans = 'XYZ'; 
 cmd = 'READ:DEV:GRP%s:PSU:SIG:SWHT';
+cmdForm = 'STAT:DEV:GRP%s:PSU:SIG:SWHT';
 for i = 1:3 
     cmdtmp = sprintf(cmd,chans(i)); 
     magwrite(obj,cmdtmp); % Check if switch heater on 
     statetmp{i} = fscanf(obj,'%s');
-    statetmp{i} = sscanf(statetmp,[cmdtmp '%s']);
+    statetmp{i} = sscanf(statetmp{i},[sprintf(cmdForm,chans(i)) ':%s']);
     if ~(strcmp(statetmp{i},'ON'))&&~(strcmp(statetmp{i},'OFF'))
         error('Garbled communication: %s',statetmp{i}); 
     end
-    state(1) = strcmp(statetmp{i},'OFF');
+    state(i) = strcmp(statetmp{i},'OFF');
 end  
 if sum(state) == 3
     out = 1;
@@ -149,7 +150,6 @@ for i = 1:length(chans)
     magfield = fscanf(mag,'%s');
     B(i) = sscanf(magfield,[sprintf(cmdForm,chans(i)) ':%fT']);
 end    
-    %B = mat2cell(B);    
 end
 
 function goNormal(mag)
@@ -226,14 +226,15 @@ end
 function waitforidle(mag)
 % Check if hold
 chans = 'XYZ'; fin = zeros(1,3);
-cmd = 'READ:DEV:GRP%s:PSU:ACTN'; 
+cmd = 'READ:DEV:GRP%s:PSU:ACTN';
+cmdForm = 'STAT:DEV:GRP%s:PSU:ACTN';
 while sum(fin) ~= 3
     for i = 1:3 
-        cmdCurr =sprintf(cmd,chans(i));  
+    cmdCurr =sprintf(cmd,chans(i));  
     magwrite(mag,cmdCurr);
     state{i} = fscanf(mag,'%s');
-    state{i} = sscanf(state{i},[cmdCurr '%s']);
-    if strcmp(state{i},'HOLD'),
+    state{i} = sscanf(state{i},[sprintf(cmdForm,chans(i)) ':%s']);
+    if strcmp(state{i},'HOLD')
         fin(i) = 1;
     end
     end    

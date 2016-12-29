@@ -38,12 +38,11 @@ switch ic(2) % Channel
                 smdata.inst(ic(1)).data.currsamp = 0;
                 pause(.1); %needed to give instrument time before next trigger, anything much shorter leads to delays.                
             case 5
-                if nargin > 4 && strfind(ctrl, 'sync')
+                if exist('ctrl','val') && strfind(ctrl, 'sync')
                     n = 14;
                 else
                     n = round(log2(rate)) + 4;
                     rate = 2^-(4-n);
-                    % allow ext trig?
                     if n < 0 || n > 13
                         error('Samplerate not supported by SR830');
                     end
