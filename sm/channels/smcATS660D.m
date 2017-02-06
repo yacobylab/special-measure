@@ -84,7 +84,7 @@ switch ico(3)
                         %end
                     end
                     if waitData 
-                        val = mean(cell2mat(newDataAve),2);
+                        val = chanRng*(mean(cell2mat(newDataAve),2)/2^(nbits-1)-1);
                     else
                         val(npoints+1:length(val)) =[];
                     end
@@ -145,6 +145,9 @@ switch ico(3)
         npoints = val; 
         sampInc = 16; % buffer size must be a multiple of this 
         maxBufferSize = 1024000; 
+        if downsampBuff > maxBufferSize 
+            error('Need to increase number of points / reduce ramptime. Too many points per buffer'); 
+        end
         buffFactor = lcm(sampInc,downsampBuff); % Buffer must be multiple of both sampInc and downsamp, so find lcm. 
         samplesPerBuffer = floor(maxBufferSize / buffFactor)*buffFactor; 
         if samplesPerBuffer == 0 

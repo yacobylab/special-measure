@@ -1,26 +1,19 @@
 function smset(channels, vals, ramprate)
 % function smset(channels, vals, ramprate)
-%
 % Set channels to vals.
-% Channels can be a cell or char array with channel names, or a vector
-% with channel numbers.
+% Channels can be a cell or char array with channel names, or a vector with channel numbers.
 % vals is a vector with one element for each channel.
-% ramprate is used instead of instrument default if given, finite,
-% and smaller than default. A negative ramprate prevents
+% ramprate is used instead of instrument default if given, finite, and smaller than default. A negative ramprate prevents
 % waiting for ramping to finish for self ramping channels (smdata.inst type = 1).
 % (This feature is mainly used by smrun).
-% After checking that vals and ramprates given are within bounds of
-% rangeramp, divides channels into stepchans, setchans, rampchans.
+% After checking that vals and ramprates given are within bounds of rangeramp, divides channels into stepchans, setchans, rampchans.
 % setchans have infinite ramprate and are just to set to final value.
-% stepchans are stepped every 10 ms to final value, waiting correct time
-% for ramprate.
-% rampchans have ramping done by the driver. If a negative ramprate is
-% given, note that
+% stepchans are stepped every 10 ms to final value, waiting correct time for ramprate.
+% rampchans have ramping done by the driver. If a negative ramprate is given, note that
 
 global smdata;
 
-if isempty(channels),  return
-end
+if isempty(channels),  return; end
 
 if ~isnumeric(channels)
     channels = smchanlookup(channels);
@@ -87,29 +80,26 @@ if isempty(stepchan)
     stepchan =[];
 end
 if any(ramprate(stepchan) < 0)
-    error('Negative ramp rate for step channel.');
+    error('Negative ramprate for step channel.');
 end
 
 for k = stepchan' % get current val for step channels
     currVals(k)= smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 0]);
 end
 tramp = now;
-for k = rampchan' % start ramps
+for k = rampchan' % start ramps. Program self ramping. 
     ramptime(k) = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k), ramprate(k));
 end
 
-for k = setchan'
+for k = setchan' % Set channels are set first. 
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
-
-
-if ishandle(999)
+if ishandle(999) % update display for set chans, rampchans. 
     smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));
 end
 
+% step channels - the ramprate is maintained by smset, not through control function.
 dt = .01;
-% step channels - the ramprate is maintained by smset, not through control
-% function.
 if ~isempty(stepchan)
     dirStep = (2 * (valsScaled(stepchan) > currVals(stepchan)) - 1); % direction of step. (final value > init, dirStep = 1)
     sizeStep(stepchan) = dt * ramprate(stepchan) .* dirStep;
@@ -135,19 +125,16 @@ if ~isempty(stepchan)
         end
     end
 end
-
-%After the last step, set channels to exact final value.
-for k = stepchan'
+for k = stepchan' %After the last step, set channels to exact final value.
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
-
 if ishandle(999)
     smdispchan(channels(stepchan), vals(stepchan));
 end
+
 smdata.chanvals(channels) = vals;
 
-% rampchans let the driver do the ramping, but don't return until correct
-% time has passed.
+% rampchans let the driver do the ramping, but don't return until correct time has passed.
 rampchan = rampchan(ramprate(rampchan) > 0); % For rampchans with ramprate < 0, the driver will ramp.
 ramptime = ramptime(rampchan);
 if ~isempty(rampchan)
