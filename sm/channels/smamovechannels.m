@@ -1,8 +1,14 @@
 function smamovechannels(oldchan,newchan) 
 % Put oldchan in newchan position.  
+% can give lists. 
 global smdata; 
 dummychan = smdata.channels; 
 newchanlist = smdata.channels; 
+if ischar(newchan) && strcmp(newchan,'end') 
+    noldChan = length(oldchan); 
+    newchan = length(smdata.channels)-noldChan+1; 
+end
+
 if length(oldchan)==1
     if newchan > oldchan
         newchanlist(newchan) = dummychan(oldchan);

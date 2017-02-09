@@ -58,7 +58,7 @@ switch ico(3)
                     val = chanRng * (newDataAve/2^(nbits-1)-1); 
                 else
                     val = zeros(npoints, 1);
-                    waittime = 2*ceil(3000*npointsBuf*downsamp/smdata.inst(ico(1)).data.samprate)+500; % how long to wait for data to come in before timing out
+                    waittime = 8*ceil(3000*npointsBuf*downsamp/smdata.inst(ico(1)).data.samprate)+500; % how long to wait for data to come in before timing out
                     for i = 1:nBuffers % read # records/readout
                         bufferIndex = mod(i-1, bufferPost) + 1; % since we recycle buffers, need to consider which buffer currently using                        
                         pbuffer = smdata.inst(ico(1)).data.buffers{bufferIndex};                        

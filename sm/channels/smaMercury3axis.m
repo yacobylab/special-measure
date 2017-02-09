@@ -1,16 +1,8 @@
-function out = smaMercury3axis(opts,chan)
-% function val = smcMercury3axisDirect(ico, val, rate)
-% Here are the old comments from the IPS supply: 
-% ico: vector with instrument(index to smdata.inst), channel number for that instrument, operation
-% operation: 0 - read, 1 - set , 2 - unused usually,  3 - trigger
-% rate overrides default
-% grab the channel. I think we'll look up the instrument. 
-%  
+function out = smaMercury3axis(opts,valIn)
+
 global smdata;
 inst = sminstlookup('VectorMagnet'); 
-chans = 'XYZ';
 obj = smdata.inst(inst).data.inst; 
-maxRate = 0.12; % Tesla/min HARD CODED. 2 mT / s 
 
 if isopt(opts, 'magnet')
     out.currField = getMagField(obj,'magnet');
@@ -25,11 +17,18 @@ if isopt(opts,'queryHeater')
     val = ~isMagPersist(obj); 
     out.heater = val; 
 end
-if isopt(opts,'heaterOn');
+if isopt(opts,'heaterOn')
     goNormal(obj); 
 end
 if isopt(opts,'heaterOff')
     goPers(obj); 
+end
+if isopt(opts,'chgSet') 
+    chans = 'XYZ';
+    for i = 1:3 
+        cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),valIn); % set field
+    end
+    magwrite(obj,cmd); checkmag(obj);
 end
 end
 

@@ -86,11 +86,11 @@ end
 for k = stepchan' % get current val for step channels
     currVals(k)= smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 0]);
 end
-tramp = now;
+
 for k = rampchan' % start ramps. Program self ramping. 
     ramptime(k) = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k), ramprate(k));
 end
-
+tramp = now;
 for k = setchan' % Set channels are set first. 
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
