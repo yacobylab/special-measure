@@ -37,7 +37,15 @@ switch ico(3) % operation
     case 0 % read        
         val = oldFieldVal(chan);        
     case 1 % Standard magnet go to setpoint and hold
-        newSetPoint = getMagField(obj,'setpoint'); %figure out the new setpoint
+        oldSetPoint = getMagField(obj,'setpoint'); %figure out the new setpoint
+        if any(oldSetPoint ~= currField)
+            fprintf('Set point not equal to field. Setting them to be the same \n');
+            for i = 1:3
+                cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),currField(i)); % set field
+                magwrite(obj,cmd); checkmag(obj);
+            end
+        end
+        newSetPoint = currField; 
         newSetPoint(chan) = val;        
         if ~isFieldSafe(newSetPoint) 
             error('Unsafe field requested. Are you trying to kill me?');
@@ -51,9 +59,9 @@ switch ico(3) % operation
         if ratePerMinute<0
             holdMagnet(obj);  % set to hold
         end        
-        heaterOn = ~isMagPersist(obj);
-        if ratePerMinute > 0 && ~heaterOn,  goNormal(obj);   end %magnet persistent at field or persistent at 0. 
+        heaterOn = ~isMagPersist(obj);        
         if ~all(currField==newSetPoint) %only go through trouble if we're not at the target field
+            if ratePerMinute > 0 && ~heaterOn,  goNormal(obj);   end %magnet persistent at field or persistent at 0.
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:RFST:%f',chans(ico(2)),abs(ratePerMinute)); % set rate
             magwrite(obj,cmd); checkmag(obj);
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(ico(2)),val); % set field
@@ -61,16 +69,16 @@ switch ico(3) % operation
             if ratePerMinute > 0
                 cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(ico(2))); % start ramp
                 magwrite(obj,cmd); checkmag(obj);
-                val = abs(norm(oldFieldVal-newSetPoint)/abs(rate));
-                waitforidle(obj);                
+                val = 0;
+                waitforidle(obj);
             else
                 val = abs(norm(oldFieldVal-newSetPoint)/abs(rate)); % readout ramptime
             end
-        end      
-        if ratePerMinute > 0 && heaterOn,   goPers(obj);   end 
-        if ~isMagPersist(obj)
-            error('Magnet did not go persistent. Check magnet.'); 
-        end            
+            if ratePerMinute > 0 && ~isMagPersist(obj),   goPers(obj);   end
+            if ~isMagPersist(obj)
+                error('Magnet did not go persistent. Check magnet.');
+            end
+        end                   
     case 3        % go to target field                
         cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(ico(2)));
         magwrite(obj,cmd); checkmag(obj);   

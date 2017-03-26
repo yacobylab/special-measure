@@ -63,10 +63,14 @@ for i = 1:length(scan.loops)
     if ~isempty(scan.loops(i).setchan)
         if ischar(scan.loops(i).setchan)
             ch = {scan.loops(i).setchan};
+        elseif isempty(scan.loops(i).setchan) 
+            ch = {};
+        else            
+            ch = scan.loops(i).setchan; 
         end
         fprintf('Channels set : ')
         for j=1:length(ch)
-            fprintf('%-15s ', ch{i});
+           fprintf('%-15s ', ch{j});
         end
     end
     if ~isempty(scan.loops(i).ramptime) && all(~isnan(scan.loops(i).ramptime))
@@ -76,6 +80,10 @@ for i = 1:length(scan.loops)
     if ~isempty(scan.loops(i).getchan)
         if ischar(scan.loops(i).getchan)
             ch = {scan.loops(i).getchan};
+        elseif isempty(scan.loops(i).getchan)
+            ch = {}; 
+        else
+            ch = scan.loops(i).getchan; 
         end
         fprintf('\nChannels read: ')
         for j = 1:length(ch)

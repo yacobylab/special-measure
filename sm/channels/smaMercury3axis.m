@@ -26,9 +26,9 @@ end
 if isopt(opts,'chgSet') 
     chans = 'XYZ';
     for i = 1:3 
-        cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),valIn); % set field
+        cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),valIn(i)); % set field    
+        magwrite(obj,cmd); checkmag(obj);
     end
-    magwrite(obj,cmd); checkmag(obj);
 end
 end
 
@@ -43,7 +43,7 @@ if (abs(B(3))<=6 && norm(B(1:2))<=.262)
 end
 end
 
-function out = isMagPersist(obj) 
+function state = isMagPersist(obj) 
 %Check if all switch heaters off
 state = nan(1,3); chans = 'XYZ'; 
 cmd = 'READ:DEV:GRP%s:PSU:SIG:SWHT';
@@ -58,13 +58,6 @@ for i = 1:3
     end
     state(i) = strcmp(statetmp{i},'OFF');
 end  
-if sum(state) == 3
-    out = 1;
-elseif sum(state) == 0
-    out = 0;
-else
-    error('Switch heaters not all the same. Consider manual intervention. Heater state: %s',state); 
-end
 end
 
 function B = getMagField(mag, opts)
@@ -131,13 +124,6 @@ magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:RTOZ'); checkmag(mag);
 magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:RTOZ'); checkmag(mag);
 waitforidle(mag);
 
-end
-
-function holdMagnet(mag)
-% Put magnet in hold mode 
-magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:HOLD'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:HOLD'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:HOLD'); checkmag(mag);
 end
 
 function magwrite(mag,msg)
