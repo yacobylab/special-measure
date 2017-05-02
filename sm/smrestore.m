@@ -4,11 +4,11 @@ function smrestore(file, channels, ramprate)
 % can only restore channels saved in configch. 
 % channels can be strings or indices and specifies which values to set, default is all.
 % ramprate is optional ramptime that will be applied to all channels.
-
+global smdata
 if ~exist('file','var') || isempty(file)
-    file=uigetfile('');
+    [file,fpath]=uigetfile('');
 end
-load(file, 'configvals', 'configch');
+load(fullfile(fpath,file), 'configvals', 'configch');
 configch = smchanlookup(configch); %#ok<*NODEF>
 if exist('channels','var') && ~isempty(channels)
     channels = smchanlookup(channels);
@@ -20,7 +20,11 @@ if exist('channels','var') && ~isempty(channels)
     configvals = configvals(mask);
 end
 
-
+if isfield(smdata,'nr') && ~isempty(smdata.nr)
+    notRestore = configch==chl(smdata.nr);
+    configch(notRestore)=[];
+    configvals(notRestore) = [];
+end
 if exist('ramprate','var')
     smset(configch, configvals,ramprate);
 else

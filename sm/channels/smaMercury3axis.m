@@ -32,17 +32,6 @@ if isopt(opts,'chgSet')
 end
 end
 
-function bool = isFieldSafe(B)
-% return 1 if inside 1T sphere, 2 if inside cyl, 3 if inside both, 0 if unsafe
-bool=0;
-if norm(B)<=1
-    bool=1;
-end
-if (abs(B(3))<=6 && norm(B(1:2))<=.262)
-    bool=bool+2;
-end
-end
-
 function state = isMagPersist(obj) 
 %Check if all switch heaters off
 state = nan(1,3); chans = 'XYZ'; 

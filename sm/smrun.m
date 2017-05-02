@@ -48,7 +48,6 @@ function [data,xt] = smrun(scan, filename)
 %           routing data between channels. Basically, any procfn can access any data read and any
 %           previously recorded data. Further documentation will be provided when needed...
 %   trigfn: executed only after programming ramps for autochannels.
-
 % Copyright 2011 Hendrik Bluhm, Vivek Venkatachalam
 % This file is part of Special Measure.
 % 
@@ -115,9 +114,10 @@ if isfield(scan, 'configfn')
 scandef = scan.loops;
 
 if ~isfield(scan, 'disp') || isempty(scan.disp)
-    disp = struct('loop', {}, 'channel', {}, 'dim', {});
+    %disp = struct('loop', {}, 'channel', {}, 'dim', {},'mod',{});
+    disp = [];
 else
-    disp = scan.disp;
+    disp = scan.disp;    
 end
 
 nloops = length(scandef);
@@ -280,7 +280,7 @@ datadim = zeros(sum(ngetchan), 5); % size of data read each time
 data = cell(1, sum(ngetchan));
 ndim = zeros(1, sum(ngetchan)); % dimension of data read each time
 dataloop = zeros(1, sum(ngetchan)); % loop in which each channel is read
-disph = gobjects(1, sum(ngetchan));
+%disph = gobjects(1, sum(ngetchan));
 ramprate = cell(1, nloops);
 tloop = zeros(1, nloops);
 getch = vertcat(scandef.getchan);
@@ -319,6 +319,7 @@ for i = 1:nloops
 end
    
 switch length(disp)
+    case 0 
     case 1
         sbpl = [1 1];         
     case 2
@@ -348,20 +349,27 @@ if isfield(scan,'figure')
 else
     figurenumber=1000;
 end
-if ~ishandle(figurenumber)
-    figure(figurenumber)
-    set(figurenumber, 'pos', [10, 10, 800, 400]);
-else
-    figure(figurenumber);
-    clf;
+if ~isempty(disp)
+    if ~ishandle(figurenumber)
+        figure(figurenumber)
+        set(figurenumber, 'pos', [10, 10, 800, 400]);
+    else
+        figure(figurenumber);
+        clf;
+    end
 end
 
 set(figurenumber,'userdata','SMactive'); % tag this figure as being used by SM
 set(figurenumber, 'CurrentCharacter', char(0));
 
-if ~isfield(disp, 'loop') % default for disp loop
+if ~isfield(disp, 'loop') && ~isempty(disp) % default for disp loop
     for i = 1:length(disp)
         disp(i).loop = dataloop(disp(i).channel)-1;
+    end
+end
+if ~isfield(disp, 'mod') && ~isempty(disp) % default for disp loop
+    for i = 1:length(disp)
+        disp(i).mod = 1;
     end
 end
 
@@ -495,7 +503,6 @@ for i = 1:totpoints
                 x2(j) = scandef(j).rng(end);
 
                 val2 = trafocall(scandef(j).trafofn, x2, smdata.chanvals);
-
                 % compute ramp rate for all steps.
                 ramprate{j} = abs((val2(1:nsetchan(j))-val(1:nsetchan(j))))'...
                     ./(scandef(j).ramptime * (scandef(j).npoints-1));
@@ -578,31 +585,37 @@ for i = 1:totpoints
         end    
         
         % display data. 
-        for k = find([disp.loop] == j)
-            dc = disp(k).channel;
-
-            % last dim: :
-            % previous: count or ones. Total number of indices
-            % 
-            nind = ndim(dc)+ nloops+1-dataloop(dc)-disp(k).dim;
-            s2.subs = [num2cell([count(end:-1:max(j, end-nind+1)), ones(1, max(0, nind+j-1-nloops))]),...
-                repmat({':'},1, disp(k).dim)];    
-            
-            if disp(k).dim == 2
-                dim = size(data{dc});
-                z = zeros(dim(end-1:end));
-                z(:, :) = subsref(data{dc}, s2);
-                set(disph(k), 'CData', z);
-                if ~isempty(disph(k).CData)
-                    rng = [min(disph(k).CData(:)), max(disph(k).CData(:))];
-                    if ~(diff(rng)==0)
-                        disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
-                    end
+        if ~isempty(disp)
+            for k = find([disp.loop] == j)
+                plotNow = mod(count(j),disp(k).mod)==0;
+                if ~plotNow
+                    continue
                 end
-            else
-                set(disph(k), 'YData', subsref(data{dc}, s2));
+                dc = disp(k).channel;
+                
+                % last dim: :
+                % previous: count or ones. Total number of indices
+                %
+                nind = ndim(dc)+ nloops+1-dataloop(dc)-disp(k).dim;
+                s2.subs = [num2cell([count(end:-1:max(j, end-nind+1)), ones(1, max(0, nind+j-1-nloops))]),...
+                    repmat({':'},1, disp(k).dim)];
+                
+                if disp(k).dim == 2
+                    dim = size(data{dc});
+                    z = zeros(dim(end-1:end));
+                    z(:, :) = subsref(data{dc}, s2);
+                    set(disph(k), 'CData', z);
+                    if ~isempty(disph(k).CData)
+                        rng = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                        if ~(diff(rng)==0)
+                            disph(k).Parent.CLim = [min(disph(k).CData(:)), max(disph(k).CData(:))];
+                        end
+                    end
+                else
+                    set(disph(k), 'YData', subsref(data{dc}, s2));
+                end
+                drawnow;
             end
-            drawnow;
         end
         
         if j == scan.saveloop(1) && ~mod(count(j), scan.saveloop(2)) && nargin >= 2

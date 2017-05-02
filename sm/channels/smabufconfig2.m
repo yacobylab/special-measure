@@ -1,22 +1,18 @@
 function scan = smabufconfig2(scan, ctrl, getchanInd, config, loop)
-% scan = smabufconfig2(scan, cntrl, getrng, setrng, loop)
-% Configure buffered acquisition for fastest loop using drivers. Usually
-% used as configfn. 
+% scan = smabufconfig2(scan, cntrl, getchanInd,config,loop
+% Configure buffered acquisition for fastest loop using drivers. Usually used as configfn. 
 % Typically includes triggering, arming, and configuring. Flow is: 
-% At beginning of scan, when smabufconfig called, call cntrlfn with op 5 to
-% configure the readout. At beginning of each outer loop point (loop with
-% getchan), instrument armed. On first point of each inner loop point,
-% instrument triggered along w/ setchans that ramp. 
-% ctrl:  trig : use smatrigfn for triggering
-%         arm : use smatrigfn to arm insts in loops(2).prefn(1) using arg 4
-%         of ctrl function
-%         fast: Acquire buffered date in 1st loop. Hence, don't use rate and time of first loop for
-%         timing. Config gives  [npts, rate, nrec(optional)]
-%         end: when used with arm, arm in a new prefn in the readout loop.
-%         Otherwise uses the first one. 
+% At beginning of scan, when smabufconfig called, call cntrlfn with op 5 to configure the readout. 
+% At beginning of each outer loop point (loop with getchan), instrument armed. 
+%On first point of each inner loop point, instrument triggered along w/ setchans that ramp. 
+% ctrl:   trig : use smatrigfn for triggering
+%         arm : use smatrigfn to arm insts in loops(2).prefn(1) using arg 4 of ctrl function
+%         fast: Acquire buffered date in 1st loop. Hence, don't use rate and time of first loop for timing. Config gives [npts, rate, nrec(optional)]
+%         end: when used with arm, arm in a new prefn in the readout loop.  Otherwise uses the first one. 
+%         pls: 
 % getchanInd: indices to loops(2).getchan that do buffered readout (and must be armed, triggered). 
 % config: indices of setchans in inner loop to trigger, unless 'fast' (see above). 
-% loop to perform buffered readout on. Default readout loop is 2, unless 'fast' given, in which case loop is 1. 
+% loop: loop to perform buffered readout on. Default readout loop is 2, unless 'fast' given, in which case loop is 1. 
 % Possible extensions (not implemented): 
 % - configure decimation (see smarampconfig for code)
 
@@ -24,7 +20,7 @@ global smdata;
 if ~exist('ctrl','var')
     ctrl = '';
 end
-if strfind(ctrl, 'fast') % Set which loop is used for readout
+if strfind(ctrl, 'fast') %#ok<*STRIFCND> % Set which loop is used for readout
     if ~exist('loop','var') || isempty(loop)
         loop = 1;
     end

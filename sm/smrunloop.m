@@ -107,7 +107,6 @@ for i = 1:length(smdata.configfn) % run smdata.configfn.
         configdata{i} = smdata.configfn(i).fn(smdata.configfn(i).args);
     end
 end
-
 if saveData % save scan components and loginfo before starting. 
     save(filename, 'configvals', 'configdata', 'scan', 'configch');
     str = [configch; num2cell(configvals)];
@@ -115,19 +114,16 @@ if saveData % save scan components and loginfo before starting.
     logadd(sprintf('%s=%.3g, ', str{:}));
 end
 
-% find loops that do nothing other than starting a ramp and have skipping enabled (waittime < 0) they also have no getchan, prefn, postfn, no saves or disps.
 isdummy = false(1, nloops);
-for i = 1:nloops
+for i = 1:nloops % find loops that do nothing other than starting a ramp and have skipping enabled (waittime < 0) they also have no getchan, prefn, postfn, no saves or disps.
     isdummy(i) = isfield(scandef(i), 'waittime') && ~isempty(scandef(i).waittime) && scandef(i).waittime < 0 && all(scandef(i).ramptime < 0) && isempty(scandef(i).getchan) ...
         &&  (~isfield(scandef(i), 'prefn') || isempty(scandef(i).prefn)) && (~isfield(scandef(i), 'postfn') || isempty(scandef(i).postfn)) ...
         && ~any(scan.saveloop(1) == i) && ~any([disp.loop] == i);
 end
 scanStruct.dummy = isdummy; scanStruct.trafofn = scan.trafofn; scanStruct.disp=disp; scanStruct.ndim = ndim; 
 scanStruct.saveloop = scan.saveloop; scanStruct.nsetchan = nsetchan; scanStruct.ngetchan = ngetchan;
-
-[data,~]=smloop(scandef,data,nloops,count,setVal0,scanStruct);
-
-scan = scanFun(scan,'cleanup');
+[data,~]=smloop(scandef,data,nloops,count,setVal0,scanStruct); % This runs the actual scan 
+scan = scanFun(scan,'cleanup'); % Run cleanup function before scan ends. 
 set(figurenumber,'userdata',[]); % tag this figure as not being used by SM
 if saveData
     save(filename, 'configvals', 'configdata', 'scan', 'configch', 'data')

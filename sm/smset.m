@@ -1,4 +1,4 @@
-function smset(channels, vals, ramprate)
+function smset(channels, vals, ramprate,opts)
 % function smset(channels, vals, ramprate)
 % Set channels to vals.
 % Channels can be a cell or char array with channel names, or a vector with channel numbers.
@@ -12,7 +12,7 @@ function smset(channels, vals, ramprate)
 % rampchans have ramping done by the driver. If a negative ramprate is given, note that
 
 global smdata;
-
+if ~exist('opts','var'), opts = ''; end
 if isempty(channels),  return; end
 
 if ~isnumeric(channels)
@@ -94,8 +94,9 @@ tramp = now;
 for k = setchan' % Set channels are set first. 
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
-if ishandle(999) % update display for set chans, rampchans. 
-    smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));
+
+if ~isopt(opts,'quiet') && ishandle(999) % update display for set chans, rampchans. 
+    smdispchan(channels([rampchan; setchan]), vals([rampchan; setchan]));    
 end
 
 % step channels - the ramprate is maintained by smset, not through control function.
@@ -112,7 +113,8 @@ if ~isempty(stepchan)
         end
         
         % update the display every 10 steps.
-        if ishandle(1001) && ~mod(i, 10)
+        
+        if ~isopt(opts,'quiet') && ishandle(1001) && ~mod(i, 10)
             smdispchan(channels(stepchan(i <= nstep)), currVals(stepchan(i <= nstep))./rangeramp(stepchan(i <= nstep), 4));
         end
         
@@ -128,7 +130,7 @@ end
 for k = stepchan' %After the last step, set channels to exact final value.
     smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 1], valsScaled(k));
 end
-if ishandle(999)
+if ~isopt(opts,'quiet') && ishandle(999)
     smdispchan(channels(stepchan), vals(stepchan));
 end
 

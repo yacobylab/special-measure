@@ -5,31 +5,19 @@ function val = smcMercury3axisDirect(ico, val, rate)
 % Warning! It is possible to remotely quench the magnet. The power supply does not know about the field limits of the magnet.
 % It is therefore important to make sure the sub-function below isFieldSafe is properly populated
 % channels are [Bx By Bz]
-%
 % ico: vector with instrument(index to smdata.inst), channel number for that instrument, operation
-% operation: 0 - read, 1 - set , 2 - unused usually,  3 - trigger
-%
-%Might need in setup:
-% channel 1: FIELD
-% disp(ico)
+% operation: 0 - read, 1 - set , 2 - unused usually,  3 - trigger, 4 - 5 - go normal, 6 - go persistent 
 % maginst = tcpip('140.247.189.116',7020,'NetworkRole','client')
-global smdata;
 
+global smdata;
 chans = 'XYZ';
 obj = smdata.inst(ico(1)).data.inst;
 maxRate = 0.12; % Tesla/min HARD CODED
-chanStr=cellstr(smdata.inst(ico(1)).channels(ico(2),:));
-
-% read current persistent field value
-currField = getMagField(obj,'magnet'); %here, should be same as 'leads'
+currField = getMagField(obj,'magnet'); % read current persistent field value
 oldFieldVal= currField;
-
-if ico(3)==1 % If setting value 
-    ratePerMinute = rate*60;
-end
-
+if ico(3)==1, ratePerMinute = rate*60; end % convert from /sec to /min
 chan = ico(2);  %Only programmed for Bx, By, Bz 
-if chan ~=1 && chan ~=2 && chan~=3
+if chan ~=1 && chan ~=2 && chan~=3 
    error('channel not programmed into Mercury'); 
 end
 
@@ -38,28 +26,19 @@ switch ico(3) % operation
         val = oldFieldVal(chan);        
     case 1 % Standard magnet go to setpoint and hold
         oldSetPoint = getMagField(obj,'setpoint'); %figure out the new setpoint
-        if any(oldSetPoint ~= currField)
-            fprintf('Set point not equal to field. Setting them to be the same \n');
+        if any(abs(oldSetPoint - currField)>5e-4)
+            fprintf('Set point not equal to field. Setting them to be the same \n');            
             for i = 1:3
-                cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),currField(i)); % set field
+                cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(i),currField(i)); % set setpoint 
                 magwrite(obj,cmd); checkmag(obj);
             end
         end
-        newSetPoint = currField; 
-        newSetPoint(chan) = val;        
-        if ~isFieldSafe(newSetPoint) 
-            error('Unsafe field requested. Are you trying to kill me?');
-        end  %check that we are setting to a good value
-        if ~ispathsafe(oldFieldVal,newSetPoint)
-            error('Path from current to final B goes outside of allowed range');
-        end  % check that the path is ok
-        if abs(ratePerMinute) > maxRate
-            error('Magnet ramp rate of %f too high. Must be less than %f T/min',ratePerMinute,maxRate)
-        end
-        if ratePerMinute<0
-            holdMagnet(obj);  % set to hold
-        end        
-        heaterOn = ~isMagPersist(obj);        
+        newSetPoint = currField; newSetPoint(chan) = val;
+        if ~isFieldSafe(newSetPoint), error('Unsafe field requested. Are you trying to kill me?'); end
+        if ~ispathsafe(oldFieldVal,newSetPoint), error('Path from current to final B goes outside of allowed range'); end  % check that the path is ok
+        if abs(ratePerMinute) > maxRate, error('Magnet ramp rate of %f too high. Must be less than %f T/min',ratePerMinute,maxRate); end
+        if ratePerMinute<0, holdMagnet(obj); end        % set to hold. This stabilizes magnet.
+        heaterOn = ~isMagPersist(obj);
         if ~all(currField==newSetPoint) %only go through trouble if we're not at the target field
             if ratePerMinute > 0 && ~heaterOn,  goNormal(obj);   end %magnet persistent at field or persistent at 0.
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:RFST:%f',chans(ico(2)),abs(ratePerMinute)); % set rate
@@ -75,11 +54,9 @@ switch ico(3) % operation
                 val = abs(norm(oldFieldVal-newSetPoint)/abs(rate)); % readout ramptime
             end
             if ratePerMinute > 0 && ~isMagPersist(obj),   goPers(obj);   end
-            if ~isMagPersist(obj)
-                error('Magnet did not go persistent. Check magnet.');
-            end
-        end                   
-    case 3        % go to target field                
+            if ~isMagPersist(obj), error('Magnet did not go persistent. Check magnet.'); end
+        end
+    case 3 % go to target field
         cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(ico(2)));
         magwrite(obj,cmd); checkmag(obj);   
     case 5 % If running ramp, will want to go Normal before scan and go persistent at end.                  
@@ -205,6 +182,7 @@ end
 
 function holdMagnet(mag)
 % Put magnet in hold mode 
+% In this mode there is a fine trim function running which ensures the output is held constantly and precisely at the set point.
 magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:HOLD'); checkmag(mag);
 magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:HOLD'); checkmag(mag);
 magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:HOLD'); checkmag(mag);
@@ -215,7 +193,7 @@ fprintf(mag,'%s\r\n',msg);
 end
 
 function checkmag(mag) 
-% checks that communications were valid
+% Checks that communications were valid
 outp=fscanf(mag,'%s');
 if ~isempty(strfind(outp,'INVALID'))
     fprintf('%s\n',outp);

@@ -20,7 +20,7 @@ nchan = length(channels);
 data = cell(1, nchan);
 instchan = vertcat(smdata.channels(channels).instchan);
 
-for k = 1:nchan;
+for k = 1:nchan
     data{k} = smdata.inst(instchan(k, 1)).cntrlfn([instchan(k, :), 0])...
         ./smdata.channels(channels(k)).rangeramp(4);
     if length(data{k}) == 1

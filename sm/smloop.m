@@ -17,8 +17,7 @@ for i = 1:loop.npoints
     for k = 1:length(trafofn)
         setValL = trafocall(trafofn(k), setValL);
     end
-    setVal = trafocall(loop.trafofn, setValL, smdata.chanvals);
-    
+    setVal = trafocall(loop.trafofn, setValL, smdata.chanvals);    
     if i == 1
         smset(loop.setchan, setVal(1:nsetchan(n))); % figure out numbering.
         if isfield(loop,'settle') && ~isempty(loop.settle) && loop.settle ~= 0
