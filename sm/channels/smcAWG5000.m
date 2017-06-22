@@ -39,7 +39,7 @@ else
 end
 
 switch ico(2)
-    case -7; % alternative to reading sequence line
+    case -7 % alternative to reading sequence line
         switch ico(3) 
             case 1
                 fprintf(smdata.inst(ico(1)).data.inst, sprintf('%s %f', cmds{ico(2)}, val*mult));

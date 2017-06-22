@@ -1,13 +1,9 @@
 function [isgood,rng,rate] = smramprate(scan,opts)
-% [isgood,rng] = smramprate(scan,opts)
-if ~exist('opts','var') 
-    opts = ''; 
-end
+% [isgood,rng,rate] = smramprate(scan,opts)
+if ~exist('opts','var'), opts = ''; end
 global smdata; 
 setchans = scan.loops(1).setchan; 
-if ischar(setchans) 
-    setchans = {setchans}; 
-end
+if ischar(setchans), setchans = {setchans}; end
 
 channels = smchanlookup(setchans);
 diffPoint = diff(scan.loops(1).rng)/scan.loops(1).npoints;

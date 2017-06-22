@@ -8,7 +8,7 @@ function [val, rate] = smcATS660D(ico, val, rate, varargin)
     % this is used for groups w pulses of multiple lengths
 global smdata;
 nbits = 16; 
-bufferPost = uint32(10); % number of buffers to post 
+bufferPost = uint32(13); % number of buffers to post 
 boardHandle = smdata.inst(ico(1)).data.handle; 
 switch ico(3)    
     case 0
@@ -57,11 +57,11 @@ switch ico(3)
                     val = chanRng * (newDataAve/2^(nbits-1)-1); 
                 else
                     val = zeros(npoints, 1);
-                    waittime = 5*(1000*samplesPerBuffer/smdata.inst(ico(1)).data.samprate)+50; % how long to wait for data to come in before timing out
+                    waittime = 10*(1000*samplesPerBuffer/smdata.inst(ico(1)).data.samprate)+5000; % how long to wait for data to come in before timing out
                     for i = 1:nBuffers % read # records/readout
                         bufferIndex = mod(i-1, bufferPost) + 1; % since we recycle buffers, need to consider which buffer currently using                        
                         pbuffer = smdata.inst(ico(1)).data.buffers{bufferIndex};
-                        try
+                        %try
                             daqfn('WaitAsyncBufferComplete', boardHandle, pbuffer, waittime);  % Add error handling
                             setdatatype(pbuffer, 'uint16Ptr',samplesPerBuffer)
                             if ~isempty(s.subs{1})
@@ -69,7 +69,7 @@ switch ico(3)
                                     newDataAve = combine(subsref(reshape(pbuffer.value, downsamp, npointsBuf), s), 1);
                                 else
                                     npls = length(s.subs{1})/downsamp;
-                                    newData=subsref(reshape(pbuffer.value,npls*downsamp,npointsBuf/npls),s);
+                                    newData=subsref(reshape(pbuffer.value,npls*downsamp,npointsBuf/npls),s); % number of poitns for one set of pulses by number of repeats 
                                     newDataAve{i} = reshape(combine(reshape(newData,size(newData,1)/npls,npls,npointsBuf/npls)),1,npointsBuf);
                                 end
                             else
@@ -79,14 +79,14 @@ switch ico(3)
                                 newInds = (i - 1)*npointsBuf+1:i*npointsBuf; % new sm points coming in.
                                 val(newInds) = chanRng * (newDataAve{i}(1:length(newInds))/2^(nbits-1)-1); % is this even necessary anymore?
                             end
-                        catch
-                            newInds = (i - 1)*npointsBuf+1:i*npointsBuf; % new sm points coming in.
-                            val(newInds)=nan(length(newInds),1); 
-                            fprintf('Timeout DAQ \n'); 
-                        end
+                        %catch
+                        %    newInds = (i - 1)*npointsBuf+1:i*npointsBuf; % new sm points coming in.
+                        %    val(newInds)=nan(length(newInds),1); 
+                        %    fprintf('Timeout DAQ \n'); 
+                        %end
                         %if i < nBuffers - bufferPost + 1                            
                             daqfn('PostAsyncBuffer',boardHandle, pbuffer,samplesPerBuffer*2);
-                        %end
+                        %end                        
                     end
                     if waitData 
                         val = chanRng*(mean(cell2mat(newDataAve),2)/2^(nbits-1)-1);
@@ -150,7 +150,7 @@ switch ico(3)
         % Select number of buffers. Make sure # points per buffer is divisible by 16 and downsampling factor.        
         npoints = val; 
         sampInc = 16; % buffer size must be a multiple of this 
-        maxBufferSize = 1024000/2; 
+        maxBufferSize = 1024000; 
         if downsampBuff > maxBufferSize 
             error('Need to increase number of points / reduce ramptime. Too many points per buffer'); 
         end

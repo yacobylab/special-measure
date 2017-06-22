@@ -7,12 +7,9 @@ function val = smcLabBrick(ic, val, rate)
 % 12: print a list of serial numbers (nb ; now only prints first serial.
 % example: instrument 20 is a lab brick:
 %  smcLabBrick([20 3 1],1) will turn on power
+global smdata; 
 persistent holdoff; % Used to guarantee small pause between open and close
-if ~exist('holdoff','var')
-    holdoff=0;
-end
-
-global smdata;
+if ~exist('holdoff','var'), holdoff=0; end
 
 % Open the library if needed.
 if ~libisloaded('hidapi')
@@ -36,14 +33,9 @@ end
 % Open the device if needed.
 h=libpointer();
 try
-  if now-holdoff < 0.01
-      %'holdoff'
-      pause(0.001);
-  end
+  if now-holdoff < 0.01, pause(0.001); end
   h=calllib('hidapi','hid_open',lb_manufacturer,lb_product,libpointer('uint16Ptr',[uint16(smdata.inst(ic(1)).data.serial) 0]));  
-  if h.isNull
-      error('Unable to open labbrick serial %s\n',smdata.inst(ic(1)).data.serial);
-  end
+  if h.isNull, error('Unable to open labbrick serial %s\n',smdata.inst(ic(1)).data.serial); end
   
   % Supported command info
   cmds(1).scale=1e5;
@@ -119,8 +111,7 @@ try
               val = double(data.val(3)) * cmds(ic(2)).scale - cmds(ic(2)).offset;              
       end
       clear data;
-  end
-  
+  end  
   calllib('hidapi','hid_close',h);  h=libpointer();
   holdoff=now;
 catch err
@@ -157,9 +148,7 @@ end
 
 function printFirstSerial(lb_manufacturer, lb_product)
   h=calllib('hidapi','hid_open',lb_manufacturer,lb_product,libpointer());
-   if h.isNull
-       error('No labbricks connected');
-   end
+   if h.isNull, error('No labbricks connected'); end
    
    name=libpointer('uint16Ptr',zeros(1,128));
    calllib('hidapi','hid_get_manufacturer_string',h,name,length(get(name,'Value')));
