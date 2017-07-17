@@ -1,4 +1,4 @@
-function scan = smanaconfig(scan,opts)
+function scan = smanaconfig2(scan,opts)
 % scan = smanaconfig(scan,opts); 
 % This takes in a human readable scan : with the rng and npoints corresponding to
 % start and stop frequencies and number of points, and changes into sm-readable scan. 

@@ -1,8 +1,8 @@
-function scan = smanaconfig(scan,freqRng,npoints,opts)
+function scan = smanaconfigS(scan,freqRng,npoints,opts)
 % scan = smanaconfig(scan); 
 % possible opts: trig
 naLimPoints = 1600; 
-if npoints > naLimPoints;
+if npoints > naLimPoints
     fprintf('Use fewer points \n') 
     npoints = naLimPoints; 
 end

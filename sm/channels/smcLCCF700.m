@@ -1,4 +1,4 @@
-function val = smcLCCF700(ico,val,~)
+function val = smcLCCF700(ico,~,~)
 %function val = smcLCCF700(ico,val,~)
 %   fetch the temperature from a leiden cryogenics fridge
 %   requires that the fridge computer log to a file that can be read
@@ -9,7 +9,7 @@ function val = smcLCCF700(ico,val,~)
 %   will only be as accurate as the update rate (usually 1 min) of the
 %   leiden program
 global smdata;
-timeout = 25200; % in seconds. emit a warning of the last line is older than this 7 hrs to account for time between us and laptop.
+timeout = 25200; % in seconds. emit a warning if the last line is older than this 7 hrs to account for time between us and laptop.
 val = 0; 
 switch ico(3)
     case 0
@@ -37,7 +37,7 @@ switch ico(3)
             end
         end
         fclose(fid); %important!
-        Ts = str2num(lastln);
+        Ts = str2double(lastln);
         %changed from Ts(12:16) to this. its more robust.
         % find the last time T < 0. After this they make sense
         Ts = Ts(1+find(Ts<0,1,'last'):end);
@@ -56,6 +56,4 @@ switch ico(3)
     otherwise
         error('only read operations supported');
 end
-
 end
-
