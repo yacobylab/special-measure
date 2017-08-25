@@ -15,3 +15,4 @@ end
 if ~isfield(smdata, 'chanvals')
     smdata.chanvals = [];
 end
+end

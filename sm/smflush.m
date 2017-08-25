@@ -1,14 +1,12 @@
 function smflush(inst)
 % function smflush(inst)
-% Read data from smdata.inst(i).data.inst for all i in inst, if defined,
-% until BytesAvailable is 0.
+% Read data from smdata.inst(i).data.inst for all i in inst, if defined, until BytesAvailable is 0.
 % Default is for all instruments.
 
 global smdata;
-if nargin < 1
+if ~exist('inst','var')
     inst = 1:length(smdata.inst);
 end
-
 inst = sminstlookup(inst);
 
 for i = inst
@@ -18,5 +16,4 @@ for i = inst
         end
     end
 end
-    
-    
+end
