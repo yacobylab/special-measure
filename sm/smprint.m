@@ -56,22 +56,20 @@ for i = 1:length(scan.loops)
     elseif isempty(scan.loops(i).rng)
         scan.loops(i).rng = 1:scan.loops(i).npoints;
     end
+    fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n', i, scan.loops(i).rng([1, end]), scan.loops(i).npoints);
+    if ischar(scan.loops(i).setchan)
+        ch = {scan.loops(i).setchan};
+    elseif isempty(scan.loops(i).setchan)
+        ch = {};
+    else
+        ch = scan.loops(i).setchan;
+    end
+    fprintf('Channels set : ')
+    for j=1:length(ch)
+        fprintf('%-15s ', ch{j});
+    end
     if isempty(scan.loops(i).ramptime)
         scan.loops(i).ramptime = nan(length(ch), 1);
-    end
-    fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n', i, scan.loops(i).rng([1, end]), scan.loops(i).npoints);
-    if ~isempty(scan.loops(i).setchan)
-        if ischar(scan.loops(i).setchan)
-            ch = {scan.loops(i).setchan};
-        elseif isempty(scan.loops(i).setchan) 
-            ch = {};
-        else            
-            ch = scan.loops(i).setchan; 
-        end
-        fprintf('Channels set : ')
-        for j=1:length(ch)
-           fprintf('%-15s ', ch{j});
-        end
     end
     if ~isempty(scan.loops(i).ramptime) && all(~isnan(scan.loops(i).ramptime))
         fprintf('\nRamptimes    : ')
