@@ -10,6 +10,7 @@ global smdata;
 nbits = 16; 
 bufferPost = uint32(13); % number of buffers to post 
 boardHandle = smdata.inst(ico(1)).data.handle; 
+filt = smdata.inst(ico(1)).data.filt; 
 switch ico(3)    
     case 0
         switch ico(2)
@@ -73,7 +74,8 @@ switch ico(3)
                                     newDataAve{i} = reshape(combine(reshape(newData,size(newData,1)/npls,npls,npointsBuf/npls)),1,npointsBuf);
                                 end
                             else
-                                newDataAve{i} = combine(reshape(pbuffer.Value,downsamp,length(pbuffer.Value)/downsamp));
+                                %newDataAve{i} = combine(reshape(filtfilt(filt,cast(pbuffer.value,'double')),downsamp,length(pbuffer.Value)/downsamp));
+                                newDataAve{i} = combine(reshape(pbuffer.value,downsamp,length(pbuffer.Value)/downsamp));
                             end
                             if ~waitData
                                 newInds = (i - 1)*npointsBuf+1:i*npointsBuf; % new sm points coming in.
