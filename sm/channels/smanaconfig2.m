@@ -8,6 +8,7 @@ function scan = smanaconfig2(scan,opts)
 % Set it in the instrument and datadim. 
 % Create the prefn.
 % possible opts: int, to use continuous internal trigger. 
+if ~exist('opts','var'), opts = ''; end
 naLimPoints = 1600; 
 npoints = scan.loops(1).npoints;
 % Let's change this now to have args of Freqs, then points
@@ -40,7 +41,7 @@ if length(scan.loops)>1
 end
 
 inst = sminstlookup('E5071c');
-scan.loops(1).prefn.fn = @smanatrig; 
+scan.loops(1).prefn.fn = @smanatrigMulti; 
 scan.loops(1).prefn.args{1}=startVals; 
 scan.loops(1).prefn.args{2}=stopVals; 
 scan.loops(1).prefn.args{3} = inst; 

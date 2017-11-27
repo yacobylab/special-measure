@@ -1,6 +1,6 @@
 function val = smcMCZX7661_v2(ico,val,~)
     %function val = smcMCZX7661_v2(ico,val,~)
-    % control minicircuits digital step attenuators with Jim's digital IO
+    % Control minicircuits digital step attenuators with Jim's digital IO
     % smdata.inst(xx).data should have:
         % inst: the usual com object to the digital io box
         % pause: the time to pause with the latch high on the step atten
@@ -9,8 +9,7 @@ function val = smcMCZX7661_v2(ico,val,~)
         %     line: e.g. 'port0/line2' on the USB device
         %     val: 0 for off, 1 for on
         % latch: the line attached to the latch of the step attenuator
-    % the board doesn't allow reading the values, so the values are always
-    % cached in smdata.inst(xx).data.config.val
+    % the board doesn't allow reading the values, so the values are always cached in inst.data.config.val
     % ico(3) = 0: read
     % ico(3) = 1: set
     % ico(3) = 4; configure things as outputs on the box

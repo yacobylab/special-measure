@@ -17,20 +17,20 @@ global smdata
 if ~exist('extraInfo','var'), extraInfo = ''; end
 switch type
     case 'tcpip'
-%          if ~exist('drvr','var') || isempty(drvr)
-%              installedDrivers = instrhwinfo('visa');
-%              if ~isempty(installedDrivers)
-%                  drvr = installedDrivers{1};
-%              else
-%                  error('No VISA drivers installed');
-%              end
-%          end
-%         smdata.inst(smnumber).data.inst = visa(drvr,sprintf('TCPIP::%s::INSTR',number)); % or gpib1?=        
-        if ~isempty(extraInfo) 
-            smdata.inst(smnumber).data.inst = tcpip(number);
-        else % if extraInfo given, it is the port number. 
-            smdata.inst(smnumber).data.inst = tcpip(number,extraInfo);
-        end
+          if ~exist('drvr','var') || isempty(drvr)
+              installedDrivers = instrhwinfo('visa');
+              if ~isempty(installedDrivers)
+                  drvr = installedDrivers{1};
+              else
+                  error('No VISA drivers installed');
+              end
+          end
+         smdata.inst(smnumber).data.inst = visa(drvr,sprintf('TCPIP::%s::INSTR',number)); % or gpib1?=        
+%        if ~isempty(extraInfo) 
+%            smdata.inst(smnumber).data.inst = tcpip(number);
+%        else % if extraInfo given, it is the port number. 
+%            smdata.inst(smnumber).data.inst = tcpip(number,extraInfo);
+%        end
     case 'serial'
         smdata.inst(smnumber).data.inst =  serial(sprintf('COM%d',number));
     case 'gpib'

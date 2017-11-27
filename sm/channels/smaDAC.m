@@ -1,10 +1,21 @@
-function val = smaDAC(ic, msg)
+function val = smaDAC(ic, opts,str)
 % With ramp support and new trigger scheme. Odd channels are ramped.
 % Improved error treatment compared to smcdecaDAC3.m
 global smdata;
 
 inst = smdata.inst(ic(1)).data.inst; 
-val = dacread(inst,msg); 
+switch opts 
+    case 'relay'  
+        for i = 1:5 
+            val{i}=dacread(inst,sprintf('B%dm;',i-1));
+        end
+    case 'serial'
+        val = dacread(inst,'A 1107296264;p;');  
+    case 'firmware'
+        val = dacread(inst,'A 1107296266;p;');
+    case 'gen' 
+        dacwrite(inst,str);        
+end
 
 % '%*7c%d'
 
