@@ -39,8 +39,7 @@ cmd = 'READ:DEV:GRP%s:PSU:SIG:SWHT';
 cmdForm = 'STAT:DEV:GRP%s:PSU:SIG:SWHT';
 for i = 1:3 
     cmdtmp = sprintf(cmd,chans(i)); 
-    magwrite(obj,cmdtmp); % Check if switch heater on 
-    statetmp{i} = fscanf(obj,'%s');
+    statetmp{i}=magwrite(obj,cmdtmp); % Check if switch heater on     
     statetmp{i} = sscanf(statetmp{i},[sprintf(cmdForm,chans(i)) ':%s']);
     if ~(strcmp(statetmp{i},'ON'))&&~(strcmp(statetmp{i},'OFF'))
         error('Garbled communication: %s',statetmp{i}); 
@@ -68,9 +67,7 @@ switch opts
         error('Can only read magnet or lead fields.')
 end
 for i = 1:length(chans)
-    magwrite(mag,sprintf(cmd,chans(i)));
-    pause(0.125); 
-    magfield = fscanf(mag,'%s');
+    magfield=magwrite(mag,sprintf(cmd,chans(i)));        
     B(i) = sscanf(magfield,[sprintf(cmdForm,chans(i)) ':%fT']);
 end    
 end
@@ -83,15 +80,15 @@ if state == 0
     warning('Magnet appears to already be normal. State: %d',state);
     return
 end
-magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:RTOS'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:RTOS'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:RTOS'); checkmag(mag);
+magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:RTOS'); 
+magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:RTOS'); 
+magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:RTOS'); 
 waitforidle(mag);
 
 % Turn on all switch heaters 
-magwrite(mag,'SET:DEV:GRPX:PSU:SIG:SWHT:ON'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPY:PSU:SIG:SWHT:ON'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPZ:PSU:SIG:SWHT:ON'); checkmag(mag);
+magwrite(mag,'SET:DEV:GRPX:PSU:SIG:SWHT:ON'); 
+magwrite(mag,'SET:DEV:GRPY:PSU:SIG:SWHT:ON'); 
+magwrite(mag,'SET:DEV:GRPZ:PSU:SIG:SWHT:ON'); 
 waitforidle(mag);
 
 end
@@ -103,25 +100,20 @@ if state == 1
     error('Magnet appears to already be persistent. State: %f',state);
 end
 
-magwrite(mag,'SET:DEV:GRPX:PSU:SIG:SWHT:OFF'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPY:PSU:SIG:SWHT:OFF'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPZ:PSU:SIG:SWHT:OFF'); checkmag(mag);
+magwrite(mag,'SET:DEV:GRPX:PSU:SIG:SWHT:OFF'); 
+magwrite(mag,'SET:DEV:GRPY:PSU:SIG:SWHT:OFF'); 
+magwrite(mag,'SET:DEV:GRPZ:PSU:SIG:SWHT:OFF'); 
 waitforidle(mag);
 
-magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:RTOZ'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:RTOZ'); checkmag(mag);
-magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:RTOZ'); checkmag(mag);
+magwrite(mag,'SET:DEV:GRPX:PSU:ACTN:RTOZ'); 
+magwrite(mag,'SET:DEV:GRPY:PSU:ACTN:RTOZ'); 
+magwrite(mag,'SET:DEV:GRPZ:PSU:ACTN:RTOZ'); 
 waitforidle(mag);
 
 end
 
-function magwrite(mag,msg)
-fprintf(mag,'%s\r\n',msg);
-end
-
-function checkmag(mag) 
-% checks that communications were valid
-outp=fscanf(mag,'%s');
+function outp=magwrite(mag,msg)
+outp=query(mag,msg);
 if ~isempty(strfind(outp,'INVALID'))
     fprintf('%s\n',outp);
     error('Garbled magnet power communications: %s',outp);
@@ -136,8 +128,7 @@ cmdForm = 'STAT:DEV:GRP%s:PSU:ACTN';
 while sum(fin) ~= 3
     for i = 1:3 
     cmdCurr =sprintf(cmd,chans(i));  
-    magwrite(mag,cmdCurr);
-    state{i} = fscanf(mag,'%s');
+    state{i}=magwrite(mag,cmdCurr);    
     state{i} = sscanf(state{i},[sprintf(cmdForm,chans(i)) ':%s']);
     if strcmp(state{i},'HOLD')
         fin(i) = 1;

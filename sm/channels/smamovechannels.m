@@ -1,4 +1,5 @@
 function smamovechannels(oldchan,newchan) 
+% smamovechannels(oldchan,newchan) 
 % Put oldchan in newchan position.  
 % can give lists. 
 global smdata; 

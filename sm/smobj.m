@@ -16,7 +16,7 @@ function smobj(type,number,smnumber,drvr,extraInfo)
 global smdata
 if ~exist('extraInfo','var'), extraInfo = ''; end
 switch type
-    case 'tcpip'
+    case 'tcpipv'
           if ~exist('drvr','var') || isempty(drvr)
               installedDrivers = instrhwinfo('visa');
               if ~isempty(installedDrivers)
@@ -26,11 +26,12 @@ switch type
               end
           end
          smdata.inst(smnumber).data.inst = visa(drvr,sprintf('TCPIP::%s::INSTR',number)); % or gpib1?=        
-%        if ~isempty(extraInfo) 
-%            smdata.inst(smnumber).data.inst = tcpip(number);
-%        else % if extraInfo given, it is the port number. 
-%            smdata.inst(smnumber).data.inst = tcpip(number,extraInfo);
-%        end
+    case 'tcpip'
+        if isempty(extraInfo)
+            smdata.inst(smnumber).data.inst = tcpip(number);
+        else % if extraInfo given, it is the port number.
+            smdata.inst(smnumber).data.inst = tcpip(number,extraInfo);
+        end
     case 'serial'
         smdata.inst(smnumber).data.inst =  serial(sprintf('COM%d',number));
     case 'gpib'

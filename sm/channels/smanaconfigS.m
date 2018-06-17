@@ -12,8 +12,10 @@ smset('NAstopFreq',freqRng(2));
 inst = sminstlookup('E5071c'); 
 
 if exist('opts','var') && strfind(opts,'trig')
-    scan.loops(1).prefn.fn = @smanatrig; 
-    scan.loops(1).prefn.args{1} = inst; 
+    if ~isempty(strfind(opts,'trig'))
+        scan.loops(1).prefn.fn = @smanatrig; 
+        scan.loops(1).prefn.args{1} = inst;    
+    end
 end
 
 end

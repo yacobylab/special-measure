@@ -1,7 +1,4 @@
 function val = smaDAC(ic, opts,str)
-% With ramp support and new trigger scheme. Odd channels are ramped.
-% Improved error treatment compared to smcdecaDAC3.m
-global smdata;
 
 inst = smdata.inst(ic(1)).data.inst; 
 switch opts 
