@@ -1,4 +1,5 @@
 function val = smcLCCF700(ico,~,~)
+% Fetch the temperature from a Leiden Cryogenics fridge (hackier old method) 
 %function val = smcLCCF700(ico,val,~)
 %   fetch the temperature from a leiden cryogenics fridge
 %   requires that the fridge computer log to a file that can be read

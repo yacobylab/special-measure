@@ -1,13 +1,12 @@
 function out = smadachandshake(inst)
-%function smadachandshake(inst)
-% establish that the DAC that you are talking to has the correct serial
-% number.
-% this builds in protection against windows switching COM ports on reboot
+% Establish that the DAC that you are talking to has the correct serial number.
+% function smadachandshake(inst)
+% This builds in protection against windows switching COM ports on reboot
 
 
 global smdata;
 
-if nargin < 1
+if ~exist('inst','var')
     inst = sminstlookup('DecaDAC');
 else
     inst = sminstlookup(inst);
@@ -23,5 +22,5 @@ for j = inst'
 end
 
 if ~all(out)
-   error('instruments %i do not match their handshakes ', inst(find(out==0))); 
+   error('Instruments %i do not match their handshakes ', inst(find(out==0))); 
 end

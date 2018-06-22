@@ -2,9 +2,9 @@ function scan = smabufconfig2(scan, ctrl, getchanInd, config, loop)
 % scan = smabufconfig2(scan, cntrl, getchanInd,config,loop
 % Configure buffered acquisition for fastest loop using drivers. Usually used as configfn. 
 % Typically includes triggering, arming, and configuring. Flow is: 
-% At beginning of scan, when smabufconfig called, call cntrlfn with op 5 to configure the readout. 
-% At beginning of each outer loop point (loop with getchan), instrument armed. 
-%On first point of each inner loop point, instrument triggered along w/ setchans that ramp. 
+% At beginning of scan, when smabufconfig2 called, call cntrlfn with op 5 to configure the readout. 
+% At beginning of each outer loop point (loop with getchan), instrument armed with op 4. 
+% On first point of each inner loop point, instrument triggered along w/ setchans that ramp. 
 % ctrl:   trig : use smatrigfn for triggering
 %         arm : use smatrigfn to arm insts in loops(2).prefn(1) using arg 4 of ctrl function
 %         fast: Acquire buffered date in 1st loop. Hence, don't use rate and time of first loop for timing. Config gives [npts, rate, nrec(optional)]

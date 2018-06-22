@@ -1,2 +1,3 @@
 *.dll
 *.dll
+*/fpga_lockin

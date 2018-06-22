@@ -1,16 +1,16 @@
-function val = smcTDS5104(ico, val, rate)
+function val = smcTDS5104(ico, val, ~)
+% Tektronix oscilloscope driver
+% function val = smcTDS5104(ico, val)
 
 global smdata;
 
-
 switch ico(3)                
-    case 0
-       
+    case 0     
         %byten = query(TDS, 'WFMO:BYT_N?', '%s\n', '%d');
         if ico(2) <= 4
             fprintf(smdata.inst(ico(1)).data.inst, 'DAT:SOU CH%i', ico(2));
             while smdata.inst(ico(1)).data.nacq(ico(2)) < Inf && ...
-                smdata.inst(ico(1)).data.nacq(ico(2)) >= query(smdata.inst(ico(1)).data.inst, 'ACQ:NUMAC?', '%s\n', '%d');
+                smdata.inst(ico(1)).data.nacq(ico(2)) >= query(smdata.inst(ico(1)).data.inst, 'ACQ:NUMAC?', '%s\n', '%d')
                 pause(.02);
             end
 
@@ -30,7 +30,6 @@ switch ico(3)
             scale(2) =  query(smdata.inst(ico(1)).data.inst,'WFMP:YOFF?', '%s\n', '%f');
             scale(2) =  scale(2) - query(smdata.inst(ico(1)).data.inst,'WFMP:YZE?', '%s\n', '%f')/scale(1);
 
-
             val = (val-scale(2)) * scale(1);
 
             if smdata.inst(ico(1)).data.nacq(ico(2)) < Inf
@@ -38,11 +37,9 @@ switch ico(3)
             end
         else
             val = query(smdata.inst(ico(1)).data.inst, sprintf('MEASU:MEAS%d:VAL?', ico(2)-4), '%s\n', '%f');
-        end
-        
+        end        
     case 3
-        fprintf(smdata.inst(ico(1)).data.inst, 'TRIG FORCE');
-        
+        fprintf(smdata.inst(ico(1)).data.inst, 'TRIG FORCE');        
     otherwise
         error('Operation not supported');
 end

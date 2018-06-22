@@ -1,8 +1,7 @@
 function smadacinit(inst, opts)
-% Activate DAC outputs and set value to 0.
+% Activate DAC outputs, check handshakes, set update rate, and (optional) set value to 0.
 % smadacinit(inst, opts)
-% also sets update rate if smdata.inst(inst).data.update exists.
-% inst defaults to DecaDAC.
+% inst defaults to all instruments named DecaDAC in rack. 
 % opts can be 'zero', to set all DAC channels to zero
 
 global smdata;
@@ -25,7 +24,7 @@ if smadachandshake(inst) % smadachandshake will throw an error if dacs don't mat
     end
 end
 
-if exist('opts','var') && ~isempty(strfind(opts,'zero'))
+if exist('opts','var') && contains(opts,'zero')
     for k=inst'
         for i = 1:size(smdata.inst(k).channels, 1)/2
             smdata.inst(inst(1)).cntrlfn([k, i, 1], 0,1);

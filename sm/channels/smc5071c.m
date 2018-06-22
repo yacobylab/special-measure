@@ -1,5 +1,6 @@
-function val = smc5071c(ic, val, rate) 
-% val = smc5071c(ic, val, rate) 
+function val = smc5071c(ic, val, ~) 
+% Driver for Agilent E5071C Network Analyzer
+% val = smc5071c(ic, val, ~) 
 
 global smdata; 
 

@@ -10,7 +10,6 @@ function scan = smarampYokoSR830(scan)
 
 global smdata;
  
-    
 % if nargin >=2 
 %     lockins = scan.loops(end-1).getchan(lockins, :);
 % else

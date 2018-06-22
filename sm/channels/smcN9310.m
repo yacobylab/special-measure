@@ -1,9 +1,9 @@
-function val = smcN9310(ic, val, rate)
-% 1: freq, 2: power
-% Agilent RF signal generator
+function val = smcN9310(ic, val, ~)
+% Driver for Agilent N5183A RF signal generator 
+% function val = smcN9310(ic, val, ~)
+% Channels: 1: freq, 2: power
 % this is identical in principle to the HP1000A, but seems to require a 
 % somewhat more strict interpretation of the SCPI instruction set.
-
 
 global smdata;
 
@@ -18,4 +18,3 @@ switch ic(3)
     otherwise
         error('Operation not supported');
 end
-

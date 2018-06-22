@@ -1,5 +1,6 @@
 function val = smcCS410V(ico, val, rate)
-% Driver for CS4-10V (GPIB version)
+% Driver for CS4-10V (GPIB version) magnet power supply
+% function val = smcCS410V(ico, val, rate)
 %
 % Rate is not allowed to exceed specifications given for micrcoscope
 % magnet in each range.  Switching ranges mid-sweep may cause the rate to

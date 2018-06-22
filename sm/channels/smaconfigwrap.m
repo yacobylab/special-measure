@@ -1,6 +1,7 @@
 function scan = smaconfigwrap(scan, fn, varargin)
-%function scan = smaconfigwrap(scan, fn, varargin)
-% Run fn, varargin on config without changing scan.
+% Run a function as part of smrun configfn without changing scan. 
+% function scan = smaconfigwrap(scan, fn, varargin)
+% calls fn(varargin) 
 if ischar(fn)
     fn = str2func(fn);
 end

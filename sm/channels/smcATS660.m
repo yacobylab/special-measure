@@ -1,14 +1,20 @@
-function [val, rate] = smcATS660D(ico, val, rate, varargin)
-% val = smcATS660C(ico, val, rate, varargin)
-% ico(3) == 3 sets/gets  HW sample rate.  negative sets to external fast ac.
-% ico(3) = 4 arm
-% ico(3) = 5 configures. val = record length,
-% 4th argument specifies number of readout operations per trigger (can be inf)
+function [val, rate] = smcATS660(ico, val, rate, varargin)
+% Driver for Alazar 660 2 Channel DAQ, supports streaming 
+% val = smcATS660(ico, val, rate, varargin)
+% ico(3) args can be: 
+% 3: sets/gets  HW sample rate.  negative sets to external fast ac.
+% 4: arm before acquisition 
+% 5: configures, with val = record length, rate 
 % ico(2) = 7; 7th chan is the new flag for number of pulses in group
-    % this is used for groups w pulses of multiple lengths
+% this is used for groups w pulses of multiple lengths
+% Requires that smdata inst be set up with data: 
+% For pulsed data, relies on smabufconfig2 for configuring. 
+% Works with masks, so that only data from readout period is saved. 
+% Averages multiple data points together before storing; set in inst.data.downsamp
+
 global smdata;
 nbits = 16; 
-bufferPost = uint32(13); % number of buffers to post 
+bufferPost = uint32(13); % number of buffers to post. # your system can handle will vary. 
 boardHandle = smdata.inst(ico(1)).data.handle; 
 switch ico(3)    
     case 0
@@ -36,7 +42,7 @@ switch ico(3)
                 else
                     s.subs = {[], ':'}; % without a mask, grab all the data. 
                 end                                
-                if nBuffers == 0
+                if nBuffers == 0 % No async readout. 
 %                    buf = libpointer('uint16Ptr', zeros(npointsBuf*downsamp+16, 1, 'uint16')); % see p. 26 of ATS-SDK manual regarfding exrta 16 samples
                     buf = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, npointsBuf*downsamp+16);
                     while calllib('ATSApi', 'AlazarBusy', boardHandle); end
@@ -107,56 +113,60 @@ switch ico(3)
             case 7
                 smdata.inst(ico(1)).data.num_pls_in_grp = val;
         end        
-    case 3
+    case 3 % software trigger
         daqfn('ForceTrigger', boardHandle);   
-    case 4
+    case 4 % Arm
         nBuffers = smdata.inst(ico(1)).data.nBuffers;        
-        if nBuffers(1) == 0
-            daqfn('StartCapture', boardHandle);
-        else                      
+        if nBuffers(1) %For async readout. Abort ongoing async readout, config,post buffers, 
             daqfn('AbortAsyncRead', boardHandle);
             samplesPerBuffer = smdata.inst(ico(1)).data.samplesPerBuffer;                     
             daqfn('BeforeAsyncRead',  boardHandle, ico(2), 0, samplesPerBuffer, 1, nBuffers, 1024);% uses total # records   
-            for i=1:min(smdata.inst(ico(1)).data.nBuffers,bufferPost) % Number of buffers to use in acquisiton;
+            for i=1:min(nBuffers,bufferPost) % Number of buffers to use in acquisiton;
                 daqfn('PostAsyncBuffer', boardHandle, smdata.inst(ico(1)).data.buffers{i}, samplesPerBuffer*2);
-            end
-            daqfn('StartCapture', boardHandle);         
+            end            
         end
-    case 5
-        % val passed by smabufconfig2 is npoints in the scan, usually npulses*nloop. 
+        daqfn('StartCapture', boardHandle); % start readout (awaiting trigger)                     
+    case 5 % Configure readout. Find best buffer size, number of buffers, then allocate. Save info in inst.data.
+        % val passed by smabufconfig2 is npoints in the scan, usually npulses*nloop for pulsed data. 
         % rate passed by smabufconfi2 is 1/pulselength        
         if ~exist('val','var'),   return;     end               
         nchans=2; chanInds=[1 2]; %Alazar refers to chans 1:4 as 1,2,4,8 
-        smdata.inst(ico(1)).data.chan = chanInds(ico(2));
-        if smdata.inst(ico(1)).data.samprate > 0  % Find downsamp value -- number of points averaged together.
-            samprate = smdata.inst(ico(1)).data.samprate; 
-            if ~isempty(varargin) && strcmp(varargin{2},'pls')
+        smdata.inst(ico(1)).data.chan = chanInds(ico(2)); 
+        
+        % Check that instrument can be set to samprate in inst.data
+        clockrate = setclock(ico,smdata.inst(ico(1)).data.samprate);
+        if clockrate~=smdata.inst(ico(1)).data.samprate % ummmm
+            smdata.inst(ico(1)).data.samprate=clockrate;
+        end
+        samprate = smdata.inst(ico(1)).data.samprate; 
+        
+        if samprate > 0  % Find downsamp value -- number of points averaged together. Uses samprate, # data points input / time, divided by 'rate,' number of data points output / time
+            if ~isempty(varargin) && strcmp(varargin{2},'pls') 
                 downsampBuff = floor(samprate/rate)*varargin{1};
             else
                 downsampBuff = floor(samprate/rate); % downsamp is the number of points acquired by the alazar per pulse. nominally (sampling rate)*(pulselength)                         
             end
-            downsamp = floor(samprate/rate);
-            if downsamp == 0
-                error('Pulse/ramp rate too large.');
+            downsamp = floor(samprate/rate); % Must average integer # points
+            if downsamp == 0 % 
+                error('Pulse/ramp rate too large. More points output than input. Increase samprate or decrease rate.');
             end
         else
             downsamp = 1;
-        end   
-        if ~(samprate==smdata.inst(ico(1)).data.samprate)
-            samprate = setclock(ico,samprate);
         end
+        
         rate=samprate/downsamp; %Set the clock to the sampling rates. Set rate to the new ramprate (returned to smabufconfig2)      
                 
-        % Select number of buffers. Make sure # points per buffer is divisible by 16 and downsampling factor.        
+        % Select number of buffers. Make sure # points per buffer is divisible by 
+        % sampInc and downsampling factor. Try to get closest to maxBufferSize . 
         npoints = val; 
-        sampInc = 16; % buffer size must be a multiple of this 
-        maxBufferSize = 1024000; 
+        sampInc = 16; % buffer size must be a multiple of this. Depends on model, check model. 
+        maxBufferSize = 1024000; % Depnds on model, check manual
         if downsampBuff > maxBufferSize 
             error('Need to increase number of points / reduce ramptime. Too many points per buffer'); 
         end
         buffFactor = lcm(sampInc,downsampBuff); % Buffer must be multiple of both sampInc and downsamp, so find lcm. 
         samplesPerBuffer = floor(maxBufferSize / buffFactor)*buffFactor; 
-        if samplesPerBuffer > val*downsamp
+        if samplesPerBuffer > val*downsamp % More data points in buffer than needed. 
             buffFactor = lcm(sampInc,val*downsamp); % Buffer must be multiple of both sampInc and downsamp, so find lcm. 
             samplesPerBuffer = floor(val*downsamp / buffFactor)*buffFactor;            
         end
@@ -167,11 +177,12 @@ switch ico(3)
             downsamp = downsampBuff;
             rate=samprate/downsampBuff;
         end
-        N = downsamp * npoints; nBuffers = ceil(N / samplesPerBuffer); % N = total points        
+        N = downsamp * npoints; 
+        nBuffers = ceil(N / samplesPerBuffer); % N = total points        
         npointsBuf = round(samplesPerBuffer/downsamp);
         
-        minSamps=128;
-        if nBuffers > 1
+        minSamps=128; % Depnds on model, check manual
+        if nBuffers > 1 % Configure Async read: abort current readout, free buffers, allocate new buffers.
              daqfn('AbortAsyncRead', boardHandle);                               
             if N < minSamps
                 error('Record size must be larger than 128');
@@ -185,7 +196,7 @@ switch ico(3)
                 end
             end
             smdata.inst(ico(1)).data.buffers={}; %for future: cell(length(smdata.inst(ico(1)).data.rng),0);            
-            for i=1:bufferPost
+            for i=1:bufferPost % Allocate buffers
                 pbuffer = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, samplesPerBuffer); % Use callib as this does not return a status byte. 
                 if pbuffer == 0                    
                     fprintf('Failed to allocate buffer %i\n',i)
@@ -193,13 +204,15 @@ switch ico(3)
                 end
                 smdata.inst(ico(1)).data.buffers{i} = pbuffer ;
             end
-        else
+        else % Only one buffer, no async readout needed. 
             nBuffers = 0;            
             daqfn('SetRecordCount', boardHandle, 1) 
             daqfn('SetRecordSize', boardHandle,0,samplesPerBuffer);
         end
         
-        if ~isempty(varargin) && strcmp(varargin{2},'mean')
+        % If the same pulse is run repeatedly and want to average many
+        % together
+        if ~isempty(varargin) && strcmp(varargin{2},'mean') 
             smdata.inst(ico(1)).datadim(1:nchans) = varargin{1};
             smdata.inst(ico(1)).data.npointsBuf = round(samplesPerBuffer/varargin{1});
             smdata.inst(ico(1)).data.waitData = 1; 
@@ -211,7 +224,7 @@ switch ico(3)
         smdata.inst(ico(1)).data.downsamp = downsamp;
         smdata.inst(ico(1)).data.nBuffers = nBuffers;
         smdata.inst(ico(1)).data.samplesPerBuffer = samplesPerBuffer;              
-    case 6
+    case 6 % Set mask. 
         smdata.inst(ico(1)).data.mask = val;        
     otherwise
         error('Operation not supported.');
@@ -219,10 +232,13 @@ end
 end
 
 function rate=setclock(ico, val)
+% 3 clocks can be used, set in inst.data.extclk: 0: PLL, 1: external clock,
+% 2: internal clock. 
+% Frequencies that can be set using PLL varies by DAQ model. 
 global smdata;
 boardHandle = smdata.inst(ico(1)).data.handle;
 if smdata.inst(ico(1)).data.extclk == 0 % Use 10 MHz PLL 
-    smdata.inst(ico(1)).data.samprate = max(min(val, 130e6), 0);
+    smdata.inst(ico(1)).data.samprate = max(min(val, 130e6), 0); % Set within range
     rate = val/1e6;
     dec = floor(130/rate);    
     rate = max(min(130, round(rate * dec)),110)*1e6;

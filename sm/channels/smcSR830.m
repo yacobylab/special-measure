@@ -1,4 +1,5 @@
 function [val, rate] = smcSR830(ic, val, rate, ctrl)
+% Driver for SRS 830, allowing buffered readout
 % [val, rate] = smcSR830(ic, val, rate, ctrl)
 % ctrl: sync (each sample triggered)
 %       trig external trigger starts acq.
@@ -38,7 +39,7 @@ switch ic(2) % Channel
                 smdata.inst(ic(1)).data.currsamp = 0;
                 pause(.1); %needed to give instrument time before next trigger, anything much shorter leads to delays.                
             case 5
-                if exist('ctrl','var') && strfind(ctrl, 'sync')
+                if exist('ctrl','var') && contains(ctrl, 'sync')
                     n = 14;
                 else
                     n = round(log2(rate)) + 4;

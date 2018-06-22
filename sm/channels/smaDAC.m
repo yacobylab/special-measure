@@ -1,4 +1,6 @@
 function val = smaDAC(ic, opts,str)
+% Check information about dac, including relays, serial number, firmware version, and generation. 
+% function val = smaDAC(ic, opts,str)
 
 inst = smdata.inst(ic(1)).data.inst; 
 switch opts 
@@ -13,8 +15,6 @@ switch opts
     case 'gen' 
         dacwrite(inst,str);        
 end
-
-% '%*7c%d'
 
 function dacwrite(inst, str)
 try

@@ -1,4 +1,6 @@
-function val = smcHP8350B(ic, val, rate)
+function val = smcHP8350B(ic, val, ~)
+% Driver for HP 8350B sweep oscillator mainframe 
+% function val = smcHP8350B(ic, val, ~)
 % 1: freq, 2: power
 % units are Hz and dBm
 
@@ -15,4 +17,3 @@ switch ic(3)
     otherwise
         error('Operation not supported');
 end
-

@@ -1,7 +1,7 @@
-function scan = smarampYokoSR830dmm2(scan, cntrl, ndmmsamples)
+function scan = smarampYokoSR830dmm(scan, cntrl, ndmmsamples)
+% Configures scan for syncronized acquisition with SR830, Yokogawa, and dmm
 % scan = smcrampYokoSR830dmm2(scan, cntrl, ndmmsamples)
-% Configures scan for syncronized acquisition with SR830, Yokogawa, and
-% dmm, capable of handling multiple instruments [NOT YET IMPLEMENTED!]
+%, capable of handling multiple instruments [NOT YET IMPLEMENTED!]
 % cntrl: dmm lock, lock dmm, lock, dmm 
 %        specifies readout instruments to be syncronized, first one determines
 %        time base. depending on cntrl, this routine does the following:

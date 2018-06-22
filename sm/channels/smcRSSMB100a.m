@@ -1,17 +1,11 @@
-function val = smcRSSMB100a(ic, val, rate)
-% 1: freq, 2: power
-% this is identical in principle to the HP1000A, but seems to require a 
-% somewhat more strict interpretation of the SCPI instruction set.
-
+function val = smcRSSMB100a(ic, val, ~)
+% Driver for  Rohde & Schwarz Signal generator 
+% Channels:  1: freq, 2: power
 
 global smdata;
 
-%fprintf(inst,'SOUR:POW:LEV:IMM:AMPL %.8f',power);
-%output = eval(query(inst,'SOUR:FREQ:CW?'))/1e9; in GHz
-%fprintf(inst,'SOUR:FREQ:CW %.10fGHz',freq);
-%output = eval(query(inst,'SOUR:POW:LEV?'));
-cmds = {'SOUR:FREQ:CW %.10fGHz', 'SOUR:POW:LEV:IMM:AMPL %.8f'};
-queries={'SOUR:FREQ:CW?','SOUR:POW:LEV?'};
+cmds = {'FREQ:CW %.10fGHz', 'POW:LEV:IMM:AMPL %.8f'};
+queries={'FREQ:CW?','POW:LEV?'};
 scales = [1e9, 1];
 switch ic(3)
     case 1

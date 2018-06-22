@@ -1,5 +1,6 @@
-function [val, rate] = smcATS9440_test(ico, val, rate, varargin)
-% val = [val, rate] = smcATS9440_test(ico, val, rate, varargin)
+function [val, rate] = smcATS9440(ico, val, rate, varargin)
+% Driver for Alazar 9440 4 channel DAQ
+% val = [val, rate] = smcATS9440(ico, val, rate, varargin)
 % ico(3) == 3 sets/gets  HW sample rate.  negative sets to external fast ac.
 % ico(3) = 4 arm
 % ico(3) = 5 configures. val = record length,

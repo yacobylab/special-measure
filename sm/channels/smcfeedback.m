@@ -1,4 +1,6 @@
-function val = smcfeedback(ico, val, rate)
+function val = smcfeedback(ico, val, ~)
+% Driver for nuclear feedback on spin qubits experiment
+% function val = smcfeedback(ico, val, ~)
 % channels
 % 1: fb val
 % 2: set point
@@ -25,15 +27,11 @@ switch ico(3)
                 fbdata.igain = val;
             case 6
                 fbdata.fbon = val;
-
             otherwise
                 error('Invalid channel');
-        end
-        
+        end        
     case 0
-        data = [fbdata.fbval(end), fbdata.setp, fbdata.ctrlval(end), fbdata.pgain, ...
-            fbdata.igain, fbdata.fbon];
-
+        data = [fbdata.fbval(end), fbdata.setp, fbdata.ctrlval(end), fbdata.pgain, fbdata.igain, fbdata.fbon];
         if ico(2) == 7
             if isfield(fbdata, 'pulseind')
                 npind = smdata.inst(ico(1)).datadim(7)-6;
@@ -43,8 +41,7 @@ switch ico(3)
             end
         else
             val = data(ico(2));
-        end
-        
+        end        
     otherwise
         error('Operation not supported');
 end

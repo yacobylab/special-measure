@@ -1,6 +1,6 @@
 function val = smcMercury3axisDirect(ico, val, rate)
-% function val = smcMercury3axisDirect(ico, val, rate)
 % Driver for 3 axis mercury power supply.
+% function val = smcMercury3axisDirect(ico, val, rate)
 % This driver is written to directly communicate with the power supply, not the VRM software.
 % Warning! It is possible to remotely quench the magnet. The power supply does not know about the field limits of the magnet.
 % It is therefore important to make sure the sub-function below isFieldSafe is properly populated

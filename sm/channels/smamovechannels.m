@@ -1,4 +1,5 @@
 function smamovechannels(oldchan,newchan) 
+% Change channels' position in rack. 
 % smamovechannels(oldchan,newchan) 
 % Put oldchan in newchan position.  
 % can give lists. 

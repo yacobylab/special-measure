@@ -18,7 +18,6 @@ function val = smcIPS12010GPIB(ico, val, rate)
 %channel 1: FIELD
 
 tic
-
 global smdata;
 
 if ico(3)==1
@@ -105,7 +104,6 @@ switch ico(2) % channel
                     if abs(rateperminute) > .5; %.5 T /MIN
                         error('Magnet ramp rate too high') 
                     end
-
                     
                     fprintf(mag, '%s\r', 'C3'); % put instrument in remote controlled mode
                     fscanf(mag);
@@ -135,8 +133,7 @@ switch ico(2) % channel
                             fopen(mag);
                         end
                     end
-                end
-                
+                end                
             case 0 % read the current field value
                  fprintf(mag, '%s\r', 'X');
                  state = fscanf(mag);
@@ -150,23 +147,17 @@ switch ico(2) % channel
                     val = fscanf(mag, '%*c%f');
                  end
                  
-
                  elapsedtime=toc;
                 if elapsedtime>2
                     fclose(mag);
                     fopen(mag);
-                end
-                
+                end                
             case 3 % trigger
                 % go to target field
-                fprintf(mag, '%s\r', 'A1'); fscanf(mag);
-                
+                fprintf(mag, '%s\r', 'A1'); fscanf(mag);                
             otherwise
                 error('Operation not supported');
-        end
-        
+        end       
     otherwise
         error('Channel not programmed');
-
 end
-

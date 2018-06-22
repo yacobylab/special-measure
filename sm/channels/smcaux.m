@@ -1,9 +1,8 @@
-function val = smcaux(ico, val, rate)
-% auxiliary functions not related to instruments
+function val = smcaux(ico, val, ~)
+% Auxiliary functions not related to physical instruments (e.g. time)
+% function val = smcaux(ico, val, ~)
 % channels: 
 % 1: date/time as returned by now.
-
-%global smdata;
 
 switch ico(2) 
     case 1 % time

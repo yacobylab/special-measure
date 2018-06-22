@@ -1,5 +1,6 @@
 function [val, rate] = smcdmm(ico, val, rate)
 % driver for Agilent DMMs with support for buffered readout. 
+% function [val, rate] = smcdmm(ico, val, rate)
 % Some instrument and mode dependent parameters hardcoded!
 global smdata;
 
@@ -8,23 +9,17 @@ switch ico(2) % channel
         switch ico(3)
             case 0 %get
                 val = query(smdata.inst(ico(1)).data.inst,  'READ?', '%s\n', '%f');
-
             otherwise
                 error('Operation not supported');
-        end
-        
+        end        
     case 2
         switch ico(3)
-            case 0
-                % this blocks until all values are available
+            case 0 % this blocks until all values are available
                 val = sscanf(query(smdata.inst(ico(1)).data.inst,  'FETCH?'), '%f,')';
-
             case 3 %trigger
                 trigger(smdata.inst(ico(1)).data.inst);                
-
             case 4 % arm instrument
-                fprintf(smdata.inst(ico(1)).data.inst, 'INIT'); 
-                
+                fprintf(smdata.inst(ico(1)).data.inst, 'INIT');                 
             case 5 % configure instrument                    
                 % minumum time per sample for dmm - heuristic and mode dependent
                 %samptime = .04225; %34401A 20 ms integration time
@@ -45,8 +40,7 @@ switch ico(2) % channel
                 %fprintf(smdata.inst(ind).data.inst, 'VOLT:NPLC 1'); %integrate 1 power line cycle
                 fprintf(smdata.inst(ico(1)).data.inst, 'SAMP:COUN %d', val);
                 fprintf(smdata.inst(ico(1)).data.inst, 'TRIG:DEL %f', trigdel);
-                smdata.inst(ico(1)).datadim(2, 1) = val;
-                                
+                smdata.inst(ico(1)).datadim(2, 1) = val;                                
             otherwise
                 error('Operation not supported');
         end
