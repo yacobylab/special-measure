@@ -57,13 +57,15 @@ switch ico(3) % operation
             magwrite(obj,cmd);
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(ico(2)),val); % Set field
             magwrite(obj,cmd);
+            rampTime = abs(norm(oldFieldVal-newSetPoint)/abs(rate)); % readout ramptime
             if ratePerMinute > 0
                 cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(ico(2))); % Start ramp
-                magwrite(obj,cmd);
+                magwrite(obj,cmd);                
                 val = 0;
+                pause(rampTime); 
                 waitforidle(obj);
             else
-                val = abs(norm(oldFieldVal-newSetPoint)/abs(rate)); % readout ramptime
+                val = rampTime; 
             end
             if ratePerMinute > 0 && ~isMagPersist(obj) && endPers
                 goPers(obj);
@@ -213,15 +215,15 @@ function waitforidle(mag)
 chans = 'XYZ'; fin = zeros(1,3);
 cmd = 'READ:DEV:GRP%s:PSU:ACTN';
 cmdForm = 'STAT:DEV:GRP%s:PSU:ACTN';
-while sum(fin) ~= 3
-    for i = 1:3
-        cmdCurr =sprintf(cmd,chans(i));
-        state{i}=magwrite(mag,cmdCurr);
+for i = 1:3
+    while ~fin(i)
+        cmdCurr = sprintf(cmd,chans(i));
+        state{i} = magwrite(mag,cmdCurr);
         state{i} = sscanf(state{i},[sprintf(cmdForm,chans(i)) ':%s']);
         if strcmp(state{i},'HOLD')
             fin(i) = 1;
         end
+        pause(2);
     end
-    pause(5);
 end
 end

@@ -4,9 +4,7 @@ function smundo(opts)
 % If file is more than 5 minutes old or larger than 3 kB, check with user again. 
 % if opt 'noc' is given, deletes without checking. 
 global smn_lastfile;
-if ~exist('opts','var')
-    opts = '';
-end
+if ~exist('opts','var'), opts = ''; end
 if ~isopt(opts, 'noc')
     if ~exist(smn_lastfile,'file')
         warning('File ''%s'' does not exist',smn_lastfile);
