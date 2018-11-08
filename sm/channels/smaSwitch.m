@@ -1,4 +1,5 @@
 function smaSwitch(chanConn,opts)
+% Control properties of switch made my Jim MacArthur. 
 %function smaSwitch(ico,chanConn,opts)
 % chanConn should be a cell with format {chanOut, chanInd} 
 % % chanOut will usually be breakout box channels. 

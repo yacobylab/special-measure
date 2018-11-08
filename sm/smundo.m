@@ -1,15 +1,14 @@
 function smundo(opts)
-% function smundo()
 % Double check with the user, and delete the last data file.
+% function smundo(opts)
 % If file is more than 5 minutes old or larger than 3 kB, check with user again. 
-% if opt 'noc' is given, deletes without checking. 
+% if opt 'f' is given, deletes without checking. 
 global smn_lastfile;
 if ~exist('opts','var'), opts = ''; end
-if ~isopt(opts, 'noc')
-    if ~exist(smn_lastfile,'file')
-        warning('File ''%s'' does not exist',smn_lastfile);
-    end
-    
+if ~exist(smn_lastfile,'file')
+    warning('File ''%s'' does not exist',smn_lastfile);
+end
+if ~isopt(opts, 'f')        
     s=input(sprintf('Delete "%s"? (Y/N)',smn_lastfile),'s');
     if upper(s) ~= 'Y'
         fprintf('Please make up your mind!\n');

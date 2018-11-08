@@ -16,14 +16,14 @@ if ischar(dev), dev = cellstr(dev); end % Convert to cell
 
 inst = [];
 for i = 1:length(dev) 
-    devInd = find(contains({smdata.inst.name},dev{i}));
-    if isempty(devInd)
-        devInd = find(contains({smdata.inst.device},dev{i}));
+    m = find(strcmp(dev{i}, cellstr(char(smdata.inst.name))));
+    if isempty(m)
+        m = find(strcmp(dev{i}, cellstr(char(smdata.inst.device))));        
     end
-    if(isempty(devInd))
+    if(isempty(m))
         warning('Unable to find sm instr "%s"\n',dev{i});
     else
-        inst = [inst; devInd];  
+        inst = [inst; m];  
     end
 end
 

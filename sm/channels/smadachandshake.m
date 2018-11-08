@@ -3,7 +3,6 @@ function out = smadachandshake(inst)
 % function smadachandshake(inst)
 % This builds in protection against windows switching COM ports on reboot
 
-
 global smdata;
 
 if ~exist('inst','var')
@@ -12,15 +11,15 @@ else
     inst = sminstlookup(inst);
 end
 out = [];
-for j = inst'
-   if isfield(smdata.inst(j).data, 'handshake') && ~isempty(smdata.inst(j).data.handshake)
-      hndshk = query(smdata.inst(j).data.inst, sprintf('A1107296264;p;'));
-      out = [out, (sscanf(hndshk, 'A1107296264!p%d')==smdata.inst(j).data.handshake)]; 
+for i = inst
+   if isfield(smdata.inst(i).data, 'handshake') && ~isempty(smdata.inst(i).data.handshake)
+      hndshk = query(smdata.inst(i).data.inst, sprintf('A1107296264;p;'));
+      out = [out, (sscanf(hndshk, 'A1107296264!p%d')==smdata.inst(i).data.handshake)]; 
    else
        out = [out 1];
    end    
 end
 
 if ~all(out)
-   error('Instruments %i do not match their handshakes ', inst(find(out==0))); 
+   error('Instruments %i do not match their handshakes ', inst(out==0)); 
 end
