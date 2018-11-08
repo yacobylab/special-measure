@@ -2,7 +2,7 @@ function smatrigAWG(inst)
 %set AWG triggers CH1M1, CH3M1 High (2.6 V), then Low (0.0 V). 
 %function smatrigAWG(inst)
 if ~exist('inst','var') || isempty(inst)
-    inst = sminstlookup('AWG5000'); 
+    inst = sminstlookup('AWG1'); 
 elseif ischar(inst) 
     inst = sminstlookup(inst); 
 end

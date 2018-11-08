@@ -59,7 +59,7 @@ switch ico(3)
                 else
                     s.subs = {[], ':'}; % without a mask, grab all the data.
                 end
-                if nBuffers == 0 % Single buffer, no async readout / streaming.
+                if nBuffers == 1 % Single buffer, no async readout / streaming.
                     buf = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, npointsBuf*downsamp+16);
                     while calllib('ATSApi', 'AlazarBusy', boardHandle); end % Wait for data to come in.
                     daqfn('Read',  boardHandle, ico(2), buf, 2, 1, 0, npointsBuf*downsamp);
@@ -91,7 +91,7 @@ switch ico(3)
                         setdatatype(pbuffer, 'uint16Ptr',samplesPerBuffer)
                         if ~isempty(s.subs{1}) % Average data, taking only mask.
                             if length(s.subs{1}) == downsamp %old style: each pulse the same length
-                                newDataAve = combine(subsref(reshape(pbuffer.value, downsamp, npointsBuf), s), 1);
+                                newDataAve{i} = combine(subsref(reshape(pbuffer.value, downsamp, npointsBuf), s), 1);
                             else % FIXME
                                 npls = length(s.subs{1})/downsamp;
                                 newData=subsref(reshape(pbuffer.value,npls*downsamp,npointsBuf/npls),s); 
@@ -130,11 +130,12 @@ switch ico(3)
     case 4 % Arm
         nBuffers = smdata.inst(ico(1)).data.nBuffers;
         if nBuffers>1 %For async readout. Abort ongoing async readout, config,post buffers,
+            chan = smdata.inst(ico(1)).data.chan; 
             daqfn('AbortAsyncRead', boardHandle);
             samplesPerBuffer = smdata.inst(ico(1)).data.samplesPerBuffer;
-            daqfn('BeforeAsyncRead',  boardHandle, ico(2), 0, samplesPerBuffer, 1, nBuffers, 1024);% uses total # records
+            daqfn('BeforeAsyncRead',  boardHandle, chan, 0, samplesPerBuffer, 1, nBuffers, 1024);% uses total # records
             for i=1:min(nBuffers,bufferPost) % Number of buffers to use in acquisiton;
-                daqfn('PostAsyncBuffer', boardHandle, smdata.inst(ico(1)).data.buffers{ico(2),i}, samplesPerBuffer*2);
+                daqfn('PostAsyncBuffer', boardHandle, smdata.inst(ico(1)).data.buffers{i}, samplesPerBuffer*2);
             end
         end
         daqfn('StartCapture', boardHandle); % start readout (awaiting trigger)
@@ -143,21 +144,32 @@ switch ico(3)
         % rate passed by smabufconfi2 is 1/pulselength
         % If pulsed data, also pass the number of pulses so that each buffer contains integer number of pulsegroups, making masking easier.
         if ~exist('val','var'),   return;     end
-        nchans=2; chanInds=[1 2]; %Alazar refers to chans 1:4 as 1,2,4,8
-        smdata.inst(ico(1)).data.chan = chanInds(ico(2));
+        nchans=2; chanInds = [1,2]; 
+        if  ~isempty(varargin) && strcmp(varargin{2},'chans')
+            smdata.inst(ico(1)).data.chan = sum(chanInds(varargin{1}));
+        else
+            smdata.inst(ico(1)).data.chan = chanInds(ico(2));
+        end        
         
         % Check that instrument can be set to samprate in inst.data
-        clockrate = setclock(ico,smdata.inst(ico(1)).data.samprate);
-        if clockrate~=smdata.inst(ico(1)).data.samprate % ummmm
-            smdata.inst(ico(1)).data.samprate=clockrate;
+        currRate = cell2mat(smget('samprate')); 
+        if currRate ~= smdata.inst(ico(1)).data.samprate
+            clockrate = setclock(ico,smdata.inst(ico(1)).data.samprate);
+            if clockrate~=smdata.inst(ico(1)).data.samprate % ummmm
+                smdata.inst(ico(1)).data.samprate=clockrate;
+            end
         end
         samprate = smdata.inst(ico(1)).data.samprate;
         
-        if samprate > 0  % Find downsamp value -- number of points averaged together. Uses samprate, # data points input / time, divided by 'rate,' number of data points output / time
+        % Find downsamp value -- number of points averaged together. Uses samprate, # data
+        % points input / time, divided by 'rate,' number of data points output / time
+        if samprate > 0  
             if ~isempty(varargin) && strcmp(varargin{2},'pls')
                 downsampBuff = floor(samprate/rate)*varargin{1}; % Multiply points / pulse by # of pulses so that pulsegroup fits in buffer.
             else
-                downsampBuff = floor(samprate/rate); % downsamp is the number of points acquired by the alazar per pulse. nominally (sampling rate)*(pulselength)
+                % downsamp is the number of points acquired by the alazar per pulse. 
+                % nominally (sampling rate)*(pulselength)
+                downsampBuff = floor(samprate/rate); 
             end
             downsamp = floor(samprate/rate); % Number of points averaged together.
             if downsamp == 0 %
@@ -168,22 +180,27 @@ switch ico(3)
         end
         rate=samprate/downsamp; % Set rate to the new ramprate (returned to smabufconfig2)
         
-        % Select number of buffers. Make sure # points per buffer is divisible by
-        % sampInc and downsampling factor. Try to get closest to maxBufferSize .
+        % Select number of buffers. Make sure # points per buffer is divisible by sampInc
+        % Tries to also make divisible by downsampling factor, but if both aren't possible adds extra points 
+        % Try to get closest to maxBufferSize .
         npoints = val;
         sampInc = 16; % buffer size must be a multiple of this. Depends on model, check model.
         maxBufferSize = 1024000; % Depnds on model, check manual
         if downsampBuff > maxBufferSize
             error('Need to increase number of points / reduce ramptime. Too many points per buffer');
         end
-        buffFactor = lcm(sampInc,downsampBuff); % Buffer must be multiple of both sampInc and downsampBuff, so find lcm.
-        samplesPerBuffer = floor(maxBufferSize / buffFactor)*buffFactor;
-        if samplesPerBuffer > val*downsamp % More data points in buffer than needed. FIXME: when does this happen
-            buffFactor = lcm(sampInc,val*downsamp); % Buffer must be multiple of both sampInc and downsamp, so find lcm.
-            samplesPerBuffer = floor(val*downsamp / buffFactor)*buffFactor;
+        buffFactor = lcm(sampInc,downsampBuff); % Buffer wants to be be multiple of both sampInc and downsampBuff, so find lcm.        
+        % If buffFactor > maxBufferSize, this is 0. Otherwise, gives number
+        % of repeats we can fit in buffer. 
+        samplesPerBuffer = floor(maxBufferSize / buffFactor)*buffFactor;         
+        if samplesPerBuffer > npoints*downsamp+sampInc % Can fit multiple lines in buffer, reduce points.             
+            %buffFactor = lcm(sampInc,val*downsamp); % Buffer must be multiple of both sampInc and downsamp, so find lcm.            
+            %samplesPerBuffer = floor(val*downsamp / buffFactor)*buffFactor;
+            samplesPerBuffer = ceil(npoints*downsamp/sampInc)*sampInc; 
         end
         if samplesPerBuffer == 0 % If maxBufferSize < buffFactor, need to redo.
-            downsampBuff = round(downsampBuff/sampInc)*sampInc;
+            downsampBuff = round(downsampBuff/sampInc)*sampInc; 
+            if downsampBuff ==0, downsampBuff = 1; end
             buffFactor = lcm(sampInc,downsampBuff); % Buffer must be multiple of both sampInc and downsamp, so find lcm.
             samplesPerBuffer = floor(maxBufferSize / buffFactor)*buffFactor;
             downsamp = downsampBuff;
@@ -191,6 +208,7 @@ switch ico(3)
         end
         N = downsamp * npoints; % N = total samples
         nBuffers = ceil(N / samplesPerBuffer);
+        samplesPerBuffer = ceil(N/nBuffers/sampInc)*sampInc; 
         npointsBuf = round(samplesPerBuffer/downsamp);
         
         minSamps=128; % Depends on model, check manual
@@ -214,10 +232,9 @@ switch ico(3)
                     fprintf('Failed to allocate buffer %i\n',i)
                     error('Error: AlazarAllocBufferU16 %u samples failed\n', samplesPerBuffer);
                 end
-                smdata.inst(ico(1)).data.buffers{ico(2),i} = pbuffer ;
+                smdata.inst(ico(1)).data.buffers{i} = pbuffer ;
             end
-        else % Only one buffer, no async readout needed.
-            nBuffers = 0;
+        else % Only one buffer, no async readout needed.            
             daqfn('SetRecordCount', boardHandle, 1)
             daqfn('SetRecordSize', boardHandle,0,samplesPerBuffer);
         end
