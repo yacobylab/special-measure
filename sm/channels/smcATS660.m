@@ -1,4 +1,4 @@
-function [val, rate] = smcATS660(ico, val, rate, varargin)
+function [val, rate] = smcATS660(ico, val, rate, config)
 % Driver for Alazar 660 2 Channel DAQ, supports streaming 
 % val = smcATS660(ico, val, rate, varargin)
 % ico(3) args can be: 
@@ -120,7 +120,7 @@ switch ico(3)
         daqfn('ForceTrigger', boardHandle);
     case 4 % Arm
         nBuffers = smdata.inst(ico(1)).data.nBuffers;
-        if nBuffers>1 %For async readout. Abort ongoing async readout, config,post buffers,
+        if nBuffers > 1 %For async readout. Abort ongoing async readout, config,post buffers,
             chan = smdata.inst(ico(1)).data.chan; 
             daqfn('AbortAsyncRead', boardHandle);
             samplesPerBuffer = smdata.inst(ico(1)).data.samplesPerBuffer;
@@ -134,31 +134,31 @@ switch ico(3)
         % val passed by smabufconfig2 is npoints in the scan, usually npulses*nloop for pulsed data.
         % rate passed by smabufconfi2 is 1/pulselength
         % If pulsed data, also pass the number of pulses so that each buffer contains integer number of pulsegroups, making masking easier.
-        if ~exist('val','var'),   return;     end
+        if ~exist('val','var'),   return; end
+        if ~exist('config','var'), config = struct; end 
+        
         nchans=2; chanInds = [1,2]; 
-        if  ~isempty(varargin) && strcmp(varargin{2},'chans')
-            smdata.inst(ico(1)).data.chan = sum(chanInds(varargin{1}));
-            smdata.inst(ico(1)).data.nchans = length(varargin{1}); 
+        if isfield(config,'chans') % Pass argument chans with channel inds to collect data from more than one chan. 
+            smdata.inst(ico(1)).data.chan = sum(chanInds(config.chans));
+            smdata.inst(ico(1)).data.nchans = length(config.chans); 
         else
             smdata.inst(ico(1)).data.chan = chanInds(ico(2));
             smdata.inst(ico(1)).data.nchans = 1; 
         end        
         
         % Check that instrument can be set to samprate in inst.data
-        currRate = cell2mat(smget('samprate')); 
-        if currRate ~= smdata.inst(ico(1)).data.samprate
-            clockrate = setclock(ico,smdata.inst(ico(1)).data.samprate);
-            if clockrate~=smdata.inst(ico(1)).data.samprate % ummmm
-                smdata.inst(ico(1)).data.samprate=clockrate;
-            end
+        samprate = cell2mat(smget('samprate')); 
+        if samprate ~= smdata.inst(ico(1)).data.samprate
+            samprate = setclock(ico,smdata.inst(ico(1)).data.samprate); % clockrate is rate that is actually set)            
+            smdata.inst(ico(1)).data.samprate=samprate;            
         end
-        samprate = smdata.inst(ico(1)).data.samprate;
         
+        % Determine number of buffers needed and size of buffers. 
         % Find downsamp value -- number of points averaged together. Uses samprate, # data
         % points input / time, divided by 'rate,' number of data points output / time
         if samprate > 0  
-            if ~isempty(varargin) && strcmp(varargin{2},'pls')
-                downsampBuff = floor(samprate/rate)*varargin{1}; % Multiply points / pulse by # of pulses so that pulsegroup fits in buffer.
+            if isfield(config,'pls') 
+                downsampBuff = floor(samprate/rate)*config.pls; % Multiply points / pulse by # of pulses so that pulsegroup fits in buffer.
             else
                 % downsamp is the number of points acquired by the alazar per pulse. 
                 % nominally (sampling rate)*(pulselength)
@@ -178,7 +178,7 @@ switch ico(3)
         % Try to get closest to maxBufferSize .
         npoints = val;
         sampInc = 16; % buffer size must be a multiple of this. Depends on model, check model.
-        maxBufferSize = 1024000; % Depnds on model, check manual
+        maxBufferSize = 2^20; % Depnds on model, check manual
         if downsampBuff > maxBufferSize
             error('Need to increase number of points / reduce ramptime. Too many points per buffer');
         end
@@ -245,9 +245,9 @@ switch ico(3)
         % varargin{1}.
         % For this, set higher samprate, so data comes in so quickly can't
         % process until end.
-        if ~isempty(varargin) && strcmp(varargin{2},'mean')
-            smdata.inst(ico(1)).datadim(1:nchans) = varargin{1};
-            smdata.inst(ico(1)).data.npointsBuf = round(samplesPerBuffer/varargin{1});
+        if isfield(config,'mean')
+            smdata.inst(ico(1)).datadim(1:nchans) = config.mean;
+            smdata.inst(ico(1)).data.npointsBuf = round(samplesPerBuffer/config.mean);
             smdata.inst(ico(1)).data.waitData = 1;
         else
             smdata.inst(ico(1)).datadim(1:nchans) = npoints;
