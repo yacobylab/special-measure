@@ -15,7 +15,7 @@ function val = smcCS410V(ico, val, rate)
 
 global smdata;
 
-%ico: vector with instruemnt(index to smdata.inst), channel number for that instrument, operation
+%ico: vector with instrument(index to smdata.inst), channel number for that instrument, operation
 % operation: 0 - read, 1 - set , 2 - unused usually
 % rate overrides default
 
