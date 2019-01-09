@@ -27,7 +27,7 @@ end
 
 for i = inst
     if isopt(opts,'full')
-        if isfield(smdata.inst(i),'data') && isfield(smdata.inst(i).data,'inst') && ~isempty(smdata.inst(i).data.inst)%&& isfield(smdata.inst(i).data.inst,'type')
+        if isfield(smdata.inst(i),'data') && isfield(smdata.inst(i).data,'inst') && ~isempty(smdata.inst(i).data.inst) && isobject(smdata.inst(i).data.inst)
             instType = smdata.inst(i).data.inst.type;
             if strcmp(instType,'serial')
                 instNum = num2str(smdata.inst(i).data.inst.Port(4:end));
