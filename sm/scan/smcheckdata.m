@@ -1,6 +1,6 @@
 function smcheckdata
-% function smcheckdata
-% Add (some) missing fields to smdata.
+% Finish setting rack up by adding missing variables to smdata. 
+% function smcheckdata 
 
 global smdata;
 
