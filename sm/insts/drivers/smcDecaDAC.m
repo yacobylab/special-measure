@@ -6,11 +6,21 @@ function val = smcDecaDAC(ic, val, rate)
 % Setting a voltage with a negative ramprate means trigger must be provided to start ramp. 
 global smdata;
 
-nbits = 16; nvals = 2^nbits -1; 
+if ~isfield(smdata.inst(ic(1)).data,'nbits')
+    nbits = 16; 
+else
+    nbits = smdata.inst(ic(1)).data.nbits;
+end
+if ~isfield(smdata.inst(ic(1)).data,'nChansPerSlot')
+    nChansPerSlot = 4; 
+else
+    nChansPerSlot = smdata.inst(ic(1)).data.nChansPerSlot;
+end
+nvals = 2^nbits -1;
 updateTimeUnit = 1e-6;  % units of update time are us. 
 rng = smdata.inst(ic(1)).data.rng(floor((ic(2)-1)/2)+1, :);
-dacSlot = floor((ic(2)-1)/8); 
-dacChan = floor(mod(ic(2)-1, 8)/2); 
+dacSlot = floor((ic(2)-1)/(2*nChansPerSlot)); 
+dacChan = floor(mod(ic(2)-1, 2*nChansPerSlot)/2); 
 smChan = floor((ic(2)+1)/2);
 inst = smdata.inst(ic(1)).data.inst;
 switch ic(3)

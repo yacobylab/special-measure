@@ -51,7 +51,7 @@ ramprate = rangeramp(:,3);
 reqVals = vals;
 vals = max(min(vals, rangeramp(:, 2)), rangeramp(:, 1));
 if ~all(reqVals==vals)
-    if ~smdata.quiet
+    if ~isfield(smdata,'quiet') || ~smdata.quiet
         badChanNums = find(reqVals~=vals);
         badVals = num2cell(reqVals(badChanNums))';
         badChans = {smdata.channels(channels(badChanNums)).name};
