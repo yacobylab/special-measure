@@ -53,7 +53,7 @@ switch ic(3)
         bitVal = dacread(inst, sprintf('B%1d;C%1d;d;', dacSlot, dacChan), '%*7c%d');
         val = bitVal*diff(rng)/nvals + rng(1); % Convert bit # to voltage
         if length(val) > 1
-            error(['Apparent DAC comm error. MATLAB sucks.','Consider closing and opening the instrument with smclose and smopen']);
+            error(['Apparent DAC comm error. MATLAB sucks.','Consider closing and opening the instrument with smclose and smopen, or changing the BaudRate (typical values are 9600 and 57600)']);
         end
     case 3   % software trigger
         dacwrite(inst, sprintf('B%1d;C%1d;G0;', dacSlot, dacChan));

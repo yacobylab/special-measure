@@ -16,12 +16,12 @@ function smobj(type,number,smnumber,drvr,extraInfo)
 
 global smdata
 if ~exist('extraInfo','var'), extraInfo = ''; end
-visaObj = {'tcpipVisa','gpib','visa'};
+visaObj = {'tcpipVisa','gpib','visa','usb'};
 if any(strcmp(type,visaObj)) % For visa, check which drivers installed. 
     if ~exist('drvr','var') || isempty(drvr)
         installedDrivers = instrhwinfo('visa');
         if ~isempty(installedDrivers)
-            drvr = installedDrivers{1};
+            drvr = installedDrivers.InstalledAdaptors{1};
         else
             error('No VISA drivers installed');
         end
@@ -46,6 +46,6 @@ switch type
     case 'visa'       
         smdata.inst(smnumber).data.inst = visa(drvr,number);
     case 'usb' % this probably doesn't quite work. 
-        smdata.inst(smnumber).data.inst = visa(drvr,sprintf('%USB0::%s::INSTR',number));        
+        smdata.inst(smnumber).data.inst = visa(drvr,sprintf('USB0::%s::INSTR',number));        
 end
 end
