@@ -1,4 +1,4 @@
-function smobj(type,number,smnumber,drvr,extraInfo)
+function inst=smobj(type,number,smnumber,drvr,extraInfo)
 % Create new instrument objects in your smdata rack 
 % function smobj(type,number,smnumber,drvr)
 % type can be tcpip, tcpipVisa, serial, gpib (through visa), usb, or visa. 
@@ -27,25 +27,30 @@ if any(strcmp(type,visaObj)) % For visa, check which drivers installed.
         end
     end
 end
-smnumber =sminstlookup(smnumber); 
+
 switch type
     case 'tcpipVisa'         
-         smdata.inst(smnumber).data.inst = visa(drvr,sprintf('TCPIP::%s::INSTR',number)); % or gpib1?=        
+         inst = visa(drvr,sprintf('TCPIP::%s::INSTR',number)); % or gpib1?=        
     case 'tcpip'
         if isempty(extraInfo)
-            smdata.inst(smnumber).data.inst = tcpip(number);
+            inst = tcpip(number);
         else % extraInfo is the port number, not always necessary. 
-            smdata.inst(smnumber).data.inst = tcpip(number,extraInfo);
+            inst = tcpip(number,extraInfo);
         end
     case 'serial'
-        smdata.inst(smnumber).data.inst =  serial(sprintf('COM%d',number));
+        inst =  serial(sprintf('COM%d',number));
     case 'gpib'        
         drvrInfo = instrhwinfo('visa',drvr);
         boardIndex = drvrInfo.InstalledBoardIds(1);
-        smdata.inst(smnumber).data.inst = visa(drvr,sprintf('GPIB%d::%d::INSTR',boardIndex,number)); % or gpib1?
+        inst = visa(drvr,sprintf('GPIB%d::%d::INSTR',boardIndex,number)); % or gpib1?
     case 'visa'       
-        smdata.inst(smnumber).data.inst = visa(drvr,number);
+        inst = visa(drvr,number);
     case 'usb' % this probably doesn't quite work. 
-        smdata.inst(smnumber).data.inst = visa(drvr,sprintf('USB0::%s::INSTR',number));        
+        inst = visa(drvr,sprintf('USB0::%s::INSTR',number));        
 end
+if ~isempty(smnumber)
+smnumber =sminstlookup(smnumber); 
+smdata.inst(smnumber).data.inst=inst; 
+end
+    
 end
