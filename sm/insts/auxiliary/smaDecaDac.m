@@ -1,7 +1,7 @@
 function val = smaDecaDac(ic, opts,str)
 % Check information about dac, including relays, serial number, firmware version, and generation. 
 % function val = smaDecaDac(ic, opts,str)
-
+global smdata
 inst = smdata.inst(ic(1)).data.inst; 
 switch opts 
     case 'relay'  
