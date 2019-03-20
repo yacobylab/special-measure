@@ -17,7 +17,7 @@ else
     name='';
 end
 
-if ~exist('opts','var') || isempty(opts), opts = ''; end
+if ~exist('opts','var'), opts = ''; end
 
 % If smn_lastnum exists, just check that the file exists, and that the file
 % with the num smn_lastnum+1 does not. 

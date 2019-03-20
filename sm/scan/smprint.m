@@ -53,7 +53,7 @@ fprintf('\n');
 for i = 1:length(scan.loops)
     if isempty(scan.loops(i).npoints)
         scan.loops(i).npoints = length(scan.loops(i).rng);
-    elseif isempty(scan.loops(i).rng)
+    elseif ~isfield(scan.loops,'rng') || isempty(scan.loops(i).rng)
         scan.loops(i).rng = 1:scan.loops(i).npoints;
     end
     fprintf('Loop %d\n-------\nx = %.3g to %.3g,   %d  points\n', i, scan.loops(i).rng([1, end]), scan.loops(i).npoints);

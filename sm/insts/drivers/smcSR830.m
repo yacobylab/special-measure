@@ -15,7 +15,7 @@ cmds = {'OUTP 1', 'OUTP 2', 'OUTP 3', 'OUTP 4', 'FREQ', 'SLVL', 'OAUX 1', 'OAUX 
 'OAUX 3','OAUX 4', 'AUXV 1', 'AUXV 2', 'AUXV 3', 'AUXV 4','','','SENS', 'OFLT', 'SYNC'};
 
 switch ic(2) % Channel
-    case {15, 16} % Stored data, length determined by datadim
+    case {15, 16} % Stored data, length determined by datadim (bufferd readout)
         switch ic(3)
             case 0  % get              
                 npts = smdata.inst(ic(1)).datadim(ic(2), 1);
@@ -66,7 +66,7 @@ switch ic(2) % Channel
                 end
                 fprintf(smdata.inst(ic(1)).data.inst, sprintf('%s %f', cmds{ic(2)}, val));
             case 0 % get
-                val = query(smdata.inst(ic(1)).data.inst, sprintf('%s? %s',cmds{ic(2)}(1:4), cmds{ic(2)}(5:end)), '%s\n', '%f');
+                val = query(smdata.inst(ic(1)).data.inst, sprintf('%s?%s',cmds{ic(2)}(1:4), cmds{ic(2)}(5:end)), '%s\n', '%f');
                 if ic(2)==17
                     val = SR830sensvalue(val);
                 elseif ic(2)==18

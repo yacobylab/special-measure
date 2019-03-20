@@ -1,13 +1,17 @@
 function [isgood,rng,rate] = smramprate(scan,opts)
+% check if channel ramprate in scan is limited by rangeramp. 
 % [isgood,rng,rate] = smramprate(scan,opts)
+% opts: save: 
 if ~exist('opts','var'), opts = ''; end
 global smdata; 
 setchans = scan.loops(1).setchan; 
 if ischar(setchans), setchans = {setchans}; end
-
 channels = smchanlookup(setchans);
+
 diffPoint = diff(scan.loops(1).rng)/scan.loops(1).npoints;
-rate = abs(diffPoint)./abs(scan.loops(1).ramptime); toofast = 0;
+rate = abs(diffPoint)./abs(scan.loops(1).ramptime); 
+toofast = 0;
+
 if isopt(opts,'save') && isfield(scan,'data') && isfield(scan.data,'rangeramp')     
     maxRate = scan.data.rangeramp; 
 else
@@ -42,4 +46,5 @@ if ~isgood
     rng = scan.loops(1).rng(1)+[0, (scan.loops(1).npoints-1)*diffPoint];
 else 
     rng = scan.loops(1).rng; 
+end
 end
