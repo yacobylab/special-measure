@@ -27,6 +27,7 @@ if isempty(loginfo(index).lastdate) || any(loginfo(index).lastdate ~= t(1:3));
     loginfo(index).lastdate = t(1:3);
     fprintf(logfile, '\n\n%02d/%02d/%02d\n---------\n', t(2:3), mod(t(1), 100)');    
 end
+str = replSpecial(str); 
 logstr = sprintf(str, varargin{:});
 fprintf(logfile, '\n%02d:%02d: %s\n', t(4:5), logstr);
 
