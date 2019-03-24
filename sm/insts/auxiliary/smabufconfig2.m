@@ -45,7 +45,7 @@ if strfind(ctrl, 'fast')
     for i = 1:size(getchans, 1)
         args = num2cell(config);
         if isopt(ctrl,'pls')
-            smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:},scan.data.pulsegroups(1).npulse(1),'pls');
+            smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:},'pls',scan.data.pulsegroups(1).npulse(1));
         else
             smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:});
         end
@@ -53,7 +53,7 @@ if strfind(ctrl, 'fast')
 else
     for i = 1:size(getchans, 1)
         if isopt(ctrl,'pls') % Configure instrument for readout. May change the number of points and rate to conform to instrument requirements. 
-            [scan.loops(loop-1).npoints, rate] = smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], scan.loops(loop-1).npoints, 1/abs(scan.loops(loop-1).ramptime),scan.data.pulsegroups(1).npulse(1),'pls');
+            [scan.loops(loop-1).npoints, rate] = smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], scan.loops(loop-1).npoints, 1/abs(scan.loops(loop-1).ramptime),'pls',scan.data.pulsegroups(1).npulse(1));
         else
             [scan.loops(loop-1).npoints, rate] = smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], scan.loops(loop-1).npoints, 1/abs(scan.loops(loop-1).ramptime));
         end
