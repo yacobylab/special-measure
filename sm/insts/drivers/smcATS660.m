@@ -49,12 +49,13 @@ switch ico(3)
                 samplesPerBuffer = instData.samplesPerBuffer;
                 
                 if nBuffers == 1 % Single buffer, no async readout / streaming.
-                    pbuffer = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, instData.npointsPerBuffer*instData.downsamp+16);
+                    pbuffer = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, instData.nPointsPerBuffer*instData.downsamp+16);
                     while calllib('ATSApi', 'AlazarBusy', boardHandle); end % Wait for data to come in.
-                    daqfn('Read',  boardHandle, ico(2), pbuffer, 2, 1, 0, instData.npointsPerBuffer*instData.downsamp);
-                    newDataAve = procData(pbuffer,samplesPerBuffer,nchans);
+                    daqfn('Read',  boardHandle, ico(2), pbuffer, 2, 1, 0, instData.nPointsPerBuffer*instData.downsamp);
+                    newDataAve = procData(pbuffer,samplesPerBuffer,nchans,instData);
                     daqfn('FreeBufferU16', boardHandle, pbuffer);
-                    for i = 1:nchans
+                    val = newDataAve{1}(1:npoints); 
+                    for i = 2:nchans
                         data{i}=newDataAve{i}(1:npoints);
                     end
                 else
@@ -65,21 +66,20 @@ switch ico(3)
                         pbuffer = smdata.inst(ico(1)).data.buffers{bufferIndex}; % current buffer.
                         daqfn('WaitAsyncBufferComplete', boardHandle, pbuffer, waittime);  % Add error handling. Runs until all data has come in.
                         newDataAve(:,i) = procData(pbuffer,samplesPerBuffer,nchans,instData);
-%                         if ~instData.waitData % Average data and insert into val as it comes in.
-%                             for j = 1:nchans
-%                                 data{j}=newDataAve{j,i};
-%                             end
-%                         end
-                        daqfn('PostAsyncBuffer',boardHandle, pbuffer,samplesPerBuffer*2);
+                        if ~instData.waitData
+                            daqfn('PostAsyncBuffer',boardHandle, pbuffer,samplesPerBuffer*2);
+                        end
                     end
-                    %                     if instData.waitData % If data comes in too fast to process on the run, average at the end. Does not work with masks at this time.
-                    %                         val = chanRng*(mean(cell2mat(newDataAve),2)/2^(nbits-1)-1);
-                    %                     else
-                    %                         val(npoints+1:length(val)) =[]; % If final buffer is not full, delete that data at the end.
-                    %                     end
+                    if instData.waitData % If data comes in too fast to process on the run, average at the end. Does not work with masks at this time.
+                        nbits = 16;
+                        val=mean(reshape(cell2mat(newDataAve),npoints,samplesPerBuffer*nBuffers/npoints),2);
+                        val = instData.rng(ico(2))*(val/2^(nbits-1)-1);
+                    else
+                        val = cell2mat(newDataAve(1,:)); val(npoints+1:end)=[];
+                    end
                     daqfn('AbortAsyncRead', boardHandle);
-                end
-                val = cell2mat(newDataAve(1,:)); val(npoints+1:end)=[];
+                    
+                end                
                 if nchans > 1 % Store data from second channel
                     smdata.inst(ico(1)).data.data=newDataAve(2:end,:);
                 end
@@ -171,7 +171,7 @@ case 1
         totPoints = npoints*downsamp;
         
         if totPoints < maxBufferSize % Only need a single buffer
-            samplesPerBuffer = ceil(totpoints/sampInc)*sampInc;
+            samplesPerBuffer = ceil(totPoints/sampInc)*sampInc;
         else
             % Buffer wants to be be multiple of both sampInc and downsampBuff, so find lcm.
             minPointsPerBuffer2 = lcm(sampInc,minPointsPerBuffer);
@@ -211,7 +211,7 @@ case 1
                 try
                     daqfn('FreeBufferU16', boardHandle, smdata.inst(ico(1)).data.buffers{j});
                 catch
-                    missedbuf(end+1)=j; %#ok<AGROW>
+                    missedbuf(end+1)=j; 
                 end
             end
             smdata.inst(ico(1)).data.buffers={}; %for future: cell(length(smdata.inst(ico(1)).data.rng),0);
@@ -233,9 +233,9 @@ case 1
         % varargin{1}.
         % For this, set higher samprate, so data comes in so quickly can't
         % process until end.
-        if ~isempty(varargin) && strcmp(varargin{2},'mean')
-            smdata.inst(ico(1)).datadim(1:nchans) = varargin{1};
-            smdata.inst(ico(1)).data.nPointsPerBuffer = round(samplesPerBuffer/varargin{1});
+        if ~isempty(varargin) && isfield(config,'mean')
+            smdata.inst(ico(1)).datadim(1:nchans) = config.mean;
+            smdata.inst(ico(1)).data.nPointsPerBuffer = round(samplesPerBuffer/config.mean);
             smdata.inst(ico(1)).data.waitData = 1;
         else
             smdata.inst(ico(1)).datadim(1:nchans) = npoints;
@@ -283,17 +283,21 @@ end
 end
 
 function newDataAve = procData(pbuffer,samplesPerBuffer,nchans,instData)
+% Take buffer of incoming data and average, rescale. 
 nbits = 16;
-npls = instData.numPls;
+numPls = instData.numPls;
 chanRng = instData.rng(1); %FIXME
 downsamp = instData.downsamp; 
 nPointsPerBuffer = instData.nPointsPerBuffer; 
-% configure data processing, default is mean.
+
+% Configure data processing, default is mean.
 if ~isfield(instData,'combine') || isempty(instData.combine)
     combine = @(x) nanmean(x,1);
 else
     combine = instData.combine;
 end
+
+% Create mask
 if isfield(instData, 'mask') && ~isempty(instData.mask) % Set mask
     if nchans > 1 % if mask has 2 rows, use 2nd for 2nd channel.
         s(1).subs = {instData.mask(1,:), ':'}; s(1).type = '()';
@@ -306,30 +310,35 @@ else
     s.subs = {[], ':'}; % without a mask, grab all the data.
 end
 
+% Allocate data, assuming readout configured to have first channel then
+% second channel (not interleaved). 
 setdatatype(pbuffer, 'uint16Ptr',samplesPerBuffer)
-
 if nchans ==2
     data(:,1) = pbuffer.value(1:end/2);
     data(:,2) = pbuffer.value(end/2+1:end);
 else
     data = pbuffer.value;
 end
-for i = 1:nchans
-    if ~isempty(s(i).subs{1})
-        if length(s(i).subs{1})==downsamp % Apply mask (s), reshape data into downsamp x npoints matrix, average across rows.
-            newDataAve{i} = combine(subsref(reshape(data(:,i), downsamp, nPointsPerBuffer), s(i)), 1)';
-        else % Varying pulse lengths.
-            
-            % Take useful data, reshape into full pulse lines, apply mask.
-            % Assumes readout time constant across pulses.
-            newData{i}=subsref(reshape(data(:,i),length(s(i).subs{1}),size(data,1)/length(s(i).subs{1})),s(i));
-            % newData has size npls*nPointsPerReadout x nRepeats 
-            % Now all pulses have same length data, so separate and average.
-            newDataAve{i} = reshape(combine(reshape(newData{i},size(newData{i},1)/npls,npls,nPointsPerBuffer/npls)),1,nPointsPerBuffer)';
+if ~instData.waitData
+    for i = 1:nchans
+        if ~isempty(s(i).subs{1})
+            if length(s(i).subs{1})==downsamp % Apply mask (s), reshape data into downsamp x npoints matrix, average across rows.
+                newDataAve{i} = combine(subsref(reshape(data(:,i), downsamp, nPointsPerBuffer), s(i)), 1)'; %#ok<*AGROW>
+            else % Varying pulse lengths.
+                
+                % Take useful data, reshape into full pulse lines, apply mask.
+                % Assumes readout time constant across pulses.
+                newData{i}=subsref(reshape(data(:,i),length(s(i).subs{1}),size(data,1)/length(s(i).subs{1})),s(i));
+                % newData has size npls*nPointsPerReadout x nRepeats
+                % Now all pulses have same length data, so separate and average.
+                newDataAve{i} = reshape(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls)),1,nPointsPerBuffer)';
+            end
+        else
+            newDataAve{i} = combine(reshape(data(:,i),downsamp,nPointsPerBuffer));
         end
-    else
-        newDataAve{i} = combine(reshape(data(:,i),downsamp,nPointsPerBuffer));
+        newDataAve{i} = chanRng * (newDataAve{i}/2^(nbits-1)-1);
     end
-    newDataAve{i} = chanRng * (newDataAve{i}/2^(nbits-1)-1);
+else
+    newDataAve{1} = data;
 end
 end
