@@ -45,7 +45,11 @@ if strfind(ctrl, 'fast')
     for i = 1:size(getchans, 1)
         args = num2cell(config);
         if isopt(ctrl,'pls')
+            if isopt(ctrl,'chans')
+                smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:},'pls',scan.data.pulsegroups(1).npulse(1),'chans',[1,2]);
+            else
             smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:},'pls',scan.data.pulsegroups(1).npulse(1));
+            end
         else
             smdata.inst(getchans(i, 1)).cntrlfn([getchans(i, :), 5], args{:});
         end

@@ -75,13 +75,18 @@ switch ico(3)
                         val=mean(reshape(cell2mat(newDataAve),npoints,samplesPerBuffer*nBuffers/npoints),2);
                         val = instData.rng(ico(2))*(val/2^(nbits-1)-1);
                     else
-                        val = cell2mat(newDataAve(1,:)); val(npoints+1:end)=[];
+                        val = cell2mat(newDataAve(1,:)');
+                        val(npoints+1:end)=[];
                     end
                     daqfn('AbortAsyncRead', boardHandle);
                     
                 end                
                 if nchans > 1 % Store data from second channel
-                    smdata.inst(ico(1)).data.data=newDataAve(2:end,:);
+                    for i = 2:size(newDataAve,1)
+                        outData = cell2mat(newDataAve(i,:)');
+                        outData(npoints+1:end)=[];
+                        smdata.inst(ico(1)).data.data{i-1}=outData;
+                    end
                 end
             case 3
                 val = smdata.inst(ico(1)).data.samprate;
@@ -114,18 +119,22 @@ case 1
         % val passed by smabufconfig2 is npoints in the scan, usually npulses*nloop for pulsed data.
         % rate passed by smabufconfi2 is 1/pulselength
         % If pulsed data, also pass the number of pulses so that each buffer contains integer number of pulsegroups, making masking easier.
+        smdata.inst(ico(1)).data.data={};
         if ~exist('val','var'),   return;     end        
         if ~isempty(varargin), config = struct(varargin{:}); end
         %% Set samprate, configure for multiple channels. 
-        nchans=2; chanInds = [1,2];
+        numDAQchans=2; chanInds = [1,2];
         if  ~isempty(varargin) && isfield(config,'chans')
             % Grabbing data from multiple channels
             smdata.inst(ico(1)).data.chan = sum(chanInds(config.chans));
-            smdata.inst(ico(1)).data.nchans = length(config.chans);
+            nchans = length(config.chans);            
+            val = val * nchans; 
+            chanList = [1,2]; 
         else
             % Grabbing data from only one channel, use typical SM method. 
             smdata.inst(ico(1)).data.chan = chanInds(ico(2));
-            smdata.inst(ico(1)).data.nchans = 1;
+            nchans = 1;
+            chanList = ico(2); 
         end
         
         % Check that instrument can be set to samprate in inst.data
@@ -148,7 +157,7 @@ case 1
                 minPointsPerBuffer = downsamp*config.pls; 
                 smdata.inst(ico(1)).data.numPls = config.pls;
             else                
-                smdata.inst(ico(1)).data.numPls = NaN;
+                smdata.inst(ico(1)).data.numPls = 1;
                 minPointsPerBuffer = downsamp;
             end            
             if downsamp == 0 %
@@ -166,7 +175,7 @@ case 1
         sampInc = 16; % buffer size must be a multiple of this. Depends on model, check model.
         maxBufferSize = 1024000; % Depnds on model, check manual
         if minPointsPerBuffer > maxBufferSize
-            error('Too many points per buffer. Need to reduce or number of pulses.');
+            error('Too many points per buffer. Need to reduce ramptime or number of pulses.');
         end
         totPoints = npoints*downsamp;
         
@@ -234,15 +243,16 @@ case 1
         % For this, set higher samprate, so data comes in so quickly can't
         % process until end.
         if ~isempty(varargin) && isfield(config,'mean')
-            smdata.inst(ico(1)).datadim(1:nchans) = config.mean;
+            smdata.inst(ico(1)).datadim(chanList) = config.mean;
             smdata.inst(ico(1)).data.nPointsPerBuffer = round(samplesPerBuffer/config.mean);
             smdata.inst(ico(1)).data.waitData = 1;
         else
-            smdata.inst(ico(1)).datadim(1:nchans) = npoints;
+            smdata.inst(ico(1)).datadim(chanList) = npoints/nchans;
             smdata.inst(ico(1)).data.nPointsPerBuffer = nPointsPerBuffer;
             smdata.inst(ico(1)).data.waitData = 0;
         end
         smdata.inst(ico(1)).data.downsamp = downsamp;
+        smdata.inst(ico(1)).data.nchans = nchans; 
         smdata.inst(ico(1)).data.nBuffers = nBuffers;
         smdata.inst(ico(1)).data.samplesPerBuffer = samplesPerBuffer;
     case 6 % Set mask.
@@ -331,7 +341,8 @@ if ~instData.waitData
                 newData{i}=subsref(reshape(data(:,i),length(s(i).subs{1}),size(data,1)/length(s(i).subs{1})),s(i));
                 % newData has size npls*nPointsPerReadout x nRepeats
                 % Now all pulses have same length data, so separate and average.
-                newDataAve{i} = reshape(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls)),1,nPointsPerBuffer)';
+                newDataAve{i} = reshape(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls/nchans)),1,nPointsPerBuffer/nchans)';
+                %newDataAve{i} = squeeze(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls/nchans)));
             end
         else
             newDataAve{i} = combine(reshape(data(:,i),downsamp,nPointsPerBuffer));
