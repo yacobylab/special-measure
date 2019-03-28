@@ -12,7 +12,7 @@ try
     end
     labBricks = inl('LabBrick');
     calllib('vnx_fsynth','fnLSG_SetTestMode',false);
-    brickfn('GetNumDevices'); % this needs to be run first. For debugging, can check #. 
+    num=brickfn('GetNumDevices'); % this needs to be run first. For debugging, can check #. 
     [~,devIDs]=calllib('vnx_fsynth','fnLSG_GetDevInfo',uint32(zeros(1,length(labBricks))));
     
     for i = 1:length(labBricks)
