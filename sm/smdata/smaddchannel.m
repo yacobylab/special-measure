@@ -24,9 +24,11 @@ end
 
 inst = sminstlookup(inst);
 
-if ~isnumeric(channel)
-    %channel = strmatch(channel, strvcat(smdata.inst(inst).channels), 'exact');
-    channel = strcmp(channel, char(smdata.inst(inst).channels));
+if ~isnumeric(channel)    
+    sizeChans = size(smdata.inst(inst).channels); 
+    % Hack because we should change this to cell arrays... 
+    channel = find(startsWith(mat2cell(smdata.inst(inst).channels,ones(1,sizeChans(1)),sizeChans(2)),channel));     
+    if length(channel)>1, channel = channel(1); end
 end
 
 if isempty(channel)
@@ -34,7 +36,7 @@ if isempty(channel)
     return;
 end
 
-if nargin < 5
+if ~exist('pos','var')
     if isfield(smdata, 'channels')
         pos = length(smdata.channels)+1;
     else
@@ -44,5 +46,4 @@ end
 smdata.channels(pos).name = name;
 smdata.channels(pos).instchan = [inst, channel];
 smdata.channels(pos).rangeramp = rangeramp;
-
-smprintchannels(pos);
+end
