@@ -21,5 +21,5 @@ for i = inst
 end
 
 if ~all(out)
-   error('Instruments %i do not match their handshakes ', inst(out==0)); 
+   warning('Instruments %i do not match their handshakes ', inst(out==0)); 
 end

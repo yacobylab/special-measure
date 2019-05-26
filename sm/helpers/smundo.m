@@ -33,6 +33,6 @@ if ~isopt(opts, 'f')
         fprintf('File is %g bytes long\n',st.bytes);
     end
 end
-fprintf('Deleting...\n');
+fprintf('Deleting %s \n',smn_lastfile);
 delete(smn_lastfile);
 end

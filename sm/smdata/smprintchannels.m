@@ -1,10 +1,11 @@
 function smprintchannels(ch)
-% function smprintchannels(ch)
-%
 % Print information about channels ch (Default all).
+% function smprintchannels(ch)
 
 global smdata;
-
+if ~isfield(smdata,'channels') 
+    error('No channels defined yet! Make some and try again') 
+end
 if ~exist('ch','var')
     ch = 1:length(smdata.channels);
 elseif ischar(ch)||iscell(ch)
@@ -24,7 +25,7 @@ for i = ch
         if size(smdata.inst(ic(1)).type,1)<ic(2)
             chanType = num2str(NaN);
         else
-            if smdata.inst(ic(1)).type(ic(2)) == 1;
+            if smdata.inst(ic(1)).type(ic(2)) == 1
                 chanType = 'Yes'; 
             else 
                 chanType = ''; 
