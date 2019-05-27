@@ -1,18 +1,20 @@
-function chanList = findChans(chan,num,inst)
+function chanList = findChans(chan,num,opts)
 % Find all channels in rack associated with instrument / channel.
 % function chanList = findChans(chan,num,inst)
 % Can give channel name and number (associated with inst channel you want) to get back a smdata channel number
 % can give inst to get back list of smdata channels on that instrument 
 % ADD ME: can give num, inst to get back channel 
 global smdata
-
-if isempty(chan) && isempty(num) 
-    ic = inst; 
+if ~exist('opts','var'), opts = ''; end
+if ~exist('num','var'), num = []; end
+if isopt(opts,'inst')
+    ic = sminstlookup(chan); 
 else
     ic = smchaninst(chan); 
 end
 
 chanList = [];
+
 if ~isempty(num)
     for i = 1:length(smdata.channels)
         if all(smdata.channels(i).instchan == [ic(1) num]) % find the channel with the correct instchan 
@@ -28,5 +30,10 @@ else % otherwise, just create a list of channels that are on that instrument.
 end
 if isempty(chanList) 
     fprintf('Channel not found \n'); 
+elseif isopt(opts,'print')
+    smprintchannels(chanList); 
+end
+if isopt(opts,'range')
+    smprintrange(chanList); 
 end
 end

@@ -30,7 +30,7 @@ function [val, rate] = smcATS660(ico, val, rate, varargin)
 
 global smdata;
 
-bufferPost = uint32(13); % number of buffers to post. # your system can handle will vary.
+bufferPost = uint32(16); % number of buffers to post. # your system can handle will vary.
 boardHandle = smdata.inst(ico(1)).data.handle;
 switch ico(3)
     case 0
@@ -62,7 +62,8 @@ switch ico(3)
                     waittime = 10*(1000*samplesPerBuffer/instData.samprate)+5000; % how long to wait for data to come in before timing out
                     newDataAve = cell(nchans,nBuffers);
                     for i = 1:nBuffers % read # records/readout
-                        bufferIndex = mod(i-1, bufferPost) + 1; % since we recycle buffers, need to consider which buffer currently using
+                        % Since we recycle buffers, need to consider which buffer currently using:
+                        bufferIndex = mod(i-1, bufferPost) + 1; 
                         pbuffer = smdata.inst(ico(1)).data.buffers{bufferIndex}; % current buffer.
                         daqfn('WaitAsyncBufferComplete', boardHandle, pbuffer, waittime);  % Add error handling. Runs until all data has come in.
                         newDataAve(:,i) = procData(pbuffer,samplesPerBuffer,nchans,instData);
@@ -75,7 +76,7 @@ switch ico(3)
                         val=mean(reshape(cell2mat(newDataAve),npoints,samplesPerBuffer*nBuffers/npoints),2);
                         val = instData.rng(ico(2))*(val/2^(nbits-1)-1);
                     else
-                        val = cell2mat(newDataAve(1,:)');
+                        val = cell2mat(newDataAve(1,:)); % Why did I have a tranpose here??
                         val(npoints+1:end)=[];
                     end
                     daqfn('AbortAsyncRead', boardHandle);
@@ -83,7 +84,7 @@ switch ico(3)
                 end                
                 if nchans > 1 % Store data from second channel
                     for i = 2:size(newDataAve,1)
-                        outData = cell2mat(newDataAve(i,:)');
+                        outData = cell2mat(newDataAve(i,:));
                         outData(npoints+1:end)=[];
                         smdata.inst(ico(1)).data.data{i-1}=outData;
                     end
@@ -198,10 +199,10 @@ case 1
             end
             % Make the points per buffer divisible by sampInc.
             minPointsPerBuffer2 = round(minPointsPerBuffer/sampInc)*sampInc;
-            if minPointsPerBuffer ==0, minPointsPerBuffer = 1; end % does this ever happen?            
+            if minPointsPerBuffer ==0, minPointsPerBuffer2 = 1; end % does this ever happen?            
             samplesPerBuffer = floor(maxBufferSize / minPointsPerBuffer2)*minPointsPerBuffer2;
-            downsamp = minPointsPerBuffer;
-            rate=samprate/minPointsPerBuffer;
+            downsamp = minPointsPerBuffer2;
+            rate=samprate/minPointsPerBuffer2;
             totPoints = downsamp * npoints;
         end
         
