@@ -84,12 +84,6 @@ if ~isempty(scan.loops(1).ramptime) && scan.loops(1).ramptime<0 && (~isfield(sca
     scan.loops(1).trigfn.args{1}=smchaninst(scan.loops(1).setchan);
 end
 
-if isfield(scan, 'configfn')
-    for i = 1:length(scan.configfn)
-         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
-     end    
-end
-
 % set global constants for the scan, held in field scan.consts
 if isfield(scan,'consts') && ~isempty(scan.consts)
     if ~isfield(scan.consts,'set')
@@ -110,6 +104,12 @@ if isfield(scan,'consts') && ~isempty(scan.consts)
     end
     smset(setchans, setvals);
 end 
+
+if isfield(scan, 'configfn')
+    for i = 1:length(scan.configfn)
+         scan = scan.configfn(i).fn(scan, scan.configfn(i).args{:});
+     end    
+end
 
 scandef = scan.loops;
 
