@@ -1,5 +1,6 @@
 function out = smaMercury3axis(opts,valIn)
 % heaterOn, heaterOff, 
+% magnet, leads, setpoint, queryHeater
 global smdata;
 inst = sminstlookup('VectorMagnet'); 
 obj = smdata.inst(inst).data.inst; 

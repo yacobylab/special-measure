@@ -1,9 +1,9 @@
 function smramp(channels, vals, rates,trignum)
-% function smramp(channels, vals, rates,trignum)
-% Use self ramping drivers w/ smset, allowing smset to qui (useful for long
+% Use self ramping drivers w/ smset, allowing smset to quit (useful for long
 % magnet ramps) 
-%Takes vector or cell of channels, vals, rates, but only one trignum
-%possible. Default trignum is 3. 
+% function smramp(channels, vals, rates,trignum)
+% Takes vector or cell of channels, vals, rates, but only one trignum
+% possible. Default trignum is 3. 
 
 global smdata
 

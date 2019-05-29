@@ -1,5 +1,5 @@
 function val = smcMercury3axisDirect(ico, val, rate)
-% Driver for 3 axis mercury power supply.
+% Driver for 3-Axis Mercury power supply.
 % function val = smcMercury3axisDirect(ico, val, rate)
 % This driver is written to directly communicate with the power supply, not the VRM software.
 % Warning! It is possible to remotely quench the magnet. The power supply does not know about the field limits of the magnet.
@@ -52,7 +52,7 @@ switch ico(3) % operation
         if ratePerMinute < 0, holdMagnet(obj); end % Set to hold. This stabilizes magnet.
         heaterOn = ~isMagPersist(obj);
         if ~all(currField==newSetPoint) %only make changes if we're not at the target field
-            if ratePerMinute > 0 && ~heaterOn,  goNormal(obj);   end % Ramp leads to current magnet value
+            if ratePerMinute > 0 && ~heaterOn, goNormal(obj); end % Ramp leads to current magnet value
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:RFST:%f',chans(ico(2)),abs(ratePerMinute)); % Set rate
             magwrite(obj,cmd);
             cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:FSET:%f',chans(ico(2)),val); % Set field
@@ -155,12 +155,12 @@ if state == 0
     return
 end
 for i = 1:length(chans) % Ramp the leads to setpoint.
-    cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(ico(2))); magwrite(obj,cmd);
+    cmd = sprintf('SET:DEV:GRP%s:PSU:ACTN:RTOS',chans(i)); magwrite(obj,cmd);
 end
 waitforidle(obj);
 
 for i = 1:length(chans) % Turn on all switch heaters
-    cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:SWHT:ON',chans(ico(2))); magwrite(obj,cmd);
+    cmd = sprintf('SET:DEV:GRP%s:PSU:SIG:SWHT:ON',chans(i)); magwrite(obj,cmd);
 end
 waitforidle(obj);
 end

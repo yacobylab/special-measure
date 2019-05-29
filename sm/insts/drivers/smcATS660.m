@@ -59,7 +59,8 @@ switch ico(3)
                         data{i}=newDataAve{i}(1:npoints);
                     end
                 else
-                    waittime = 10*(1000*samplesPerBuffer/instData.samprate)+5000; % how long to wait for data to come in before timing out
+                    % How long to wait for data to come in before timing out
+                    waittime = 10*(1000*samplesPerBuffer/instData.samprate)+5000; 
                     newDataAve = cell(nchans,nBuffers);
                     for i = 1:nBuffers % read # records/readout
                         % Since we recycle buffers, need to consider which buffer currently using:
