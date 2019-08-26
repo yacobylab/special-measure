@@ -1,7 +1,9 @@
 function chanList = findChans(chan,num,opts)
-% Find all channels in rack associated with instrument / channel.
-% function chanList = findChans(chan,num,inst)
+% Find all channels in rack associated with instrument / channel, print
+% info. 
+% chanList = findChans(chan,num,opts)
 % Can give channel name and number (associated with inst channel you want) to get back a smdata channel number
+% Give opt print or range to list the names/range of those channels. 
 % can give inst to get back list of smdata channels on that instrument 
 % ADD ME: can give num, inst to get back channel 
 global smdata

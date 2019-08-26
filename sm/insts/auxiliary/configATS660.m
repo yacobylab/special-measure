@@ -23,7 +23,7 @@ daqfn('SetTriggerOperation', boardh, 0, 0, 2, 2, 140, 1, 3, 1, 1);
 % slope: 1 = rising, 2=falling.
 % operation: J, K, J | K, J & K, J ^ K, J & !K !J & K = 0:6
 % Engine1: J/K = 0/1, Sourve1: CH1, CH2, EXT, NONE = 0:3, Slope: +/-=1/2,
-% level (0:255 = -100:100
+% level (0:255 = -1 V:1 V
 % same for engine 2
 
 daqfn('ConfigureAuxIO',boardh,14,0);

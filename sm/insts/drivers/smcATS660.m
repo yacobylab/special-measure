@@ -30,7 +30,7 @@ function [val, rate] = smcATS660(ico, val, rate, varargin)
 
 global smdata;
 
-bufferPost = uint32(16); % number of buffers to post. # your system can handle will vary.
+bufferPost = uint32(24); % number of buffers to post. # your system can handle will vary.
 boardHandle = smdata.inst(ico(1)).data.handle;
 switch ico(3)
     case 0
@@ -38,13 +38,13 @@ switch ico(3)
             case {1, 2} % DAQ channels
                 instData = smdata.inst(ico(1)).data;
                 nchans = instData.nchans;
-                if nchans > 1 && ico(2) > 1
+                nBuffers = smdata.inst(ico(1)).data.nBuffers;
+                if nchans > 1 && ico(2) > 1 && nBuffers > 1
                     val = smdata.inst(ico(1)).data.data{ico(2)-1};
                     smdata.inst(ico(1)).data.data{ico(2)-1}=[];
                     return
                 end
-                
-                nBuffers = smdata.inst(ico(1)).data.nBuffers;
+                                
                 npoints = smdata.inst(ico(1)).datadim(ico(2), 1);
                 samplesPerBuffer = instData.samplesPerBuffer;
                 
@@ -52,22 +52,27 @@ switch ico(3)
                     pbuffer = calllib('ATSApi', 'AlazarAllocBufferU16', boardHandle, instData.nPointsPerBuffer*instData.downsamp+16);
                     while calllib('ATSApi', 'AlazarBusy', boardHandle); end % Wait for data to come in.
                     daqfn('Read',  boardHandle, ico(2), pbuffer, 2, 1, 0, instData.nPointsPerBuffer*instData.downsamp);
-                    newDataAve = procData(pbuffer,samplesPerBuffer,nchans,instData);
+                    newDataAve = procData(pbuffer,samplesPerBuffer,ico(2),instData);
                     daqfn('FreeBufferU16', boardHandle, pbuffer);
-                    val = newDataAve{1}(1:npoints); 
-                    for i = 2:nchans
-                        data{i}=newDataAve{i}(1:npoints);
-                    end
+                    val = newDataAve{1}(1:npoints);
+                    %for i = 2:nchans
+                    %    data{i}=newDataAve{i}(1:npoints);
+                    %end
                 else
                     % How long to wait for data to come in before timing out
-                    waittime = 10*(1000*samplesPerBuffer/instData.samprate)+5000; 
-                    newDataAve = cell(nchans,nBuffers);
+                    waittime = 10*(1000*samplesPerBuffer/instData.samprate)+5000;
+                    newDataAve = cell(nchans,nBuffers/nchans);
                     for i = 1:nBuffers % read # records/readout
                         % Since we recycle buffers, need to consider which buffer currently using:
-                        bufferIndex = mod(i-1, bufferPost) + 1; 
+                        bufferIndex = mod(i-1, bufferPost) + 1;
                         pbuffer = smdata.inst(ico(1)).data.buffers{bufferIndex}; % current buffer.
                         daqfn('WaitAsyncBufferComplete', boardHandle, pbuffer, waittime);  % Add error handling. Runs until all data has come in.
-                        newDataAve(:,i) = procData(pbuffer,samplesPerBuffer,nchans,instData);
+                        if nchans>1
+                            chan = mod(i+1,nchans)+1; 
+                            newDataAve(chan,ceil(i/nchans)) = procData(pbuffer,samplesPerBuffer,chan,instData);
+                        else
+                            newDataAve(i) = procData(pbuffer,samplesPerBuffer,instData.chanList,instData);
+                        end                        
                         if ~instData.waitData
                             daqfn('PostAsyncBuffer',boardHandle, pbuffer,samplesPerBuffer*2);
                         end
@@ -78,43 +83,56 @@ switch ico(3)
                         val = instData.rng(ico(2))*(val/2^(nbits-1)-1);
                     else
                         val = cell2mat(newDataAve(1,:)); % Why did I have a tranpose here??
+                        val = val(:);
                         val(npoints+1:end)=[];
                     end
                     daqfn('AbortAsyncRead', boardHandle);
-                    
-                end                
-                if nchans > 1 % Store data from second channel
-                    for i = 2:size(newDataAve,1)
-                        outData = cell2mat(newDataAve(i,:));
-                        outData(npoints+1:end)=[];
-                        smdata.inst(ico(1)).data.data{i-1}=outData;
+                    if nchans > 1 % Store data from second channel
+                        for i = 2:size(newDataAve,1)
+                            outData = cell2mat(newDataAve(i,:));
+                            outData=outData(:); 
+                            outData(npoints+1:end)=[];
+                            smdata.inst(ico(1)).data.data{i-1}=outData;
+                        end
                     end
                 end
+                
             case 3
                 val = smdata.inst(ico(1)).data.samprate;
             case 7
                 val = smdata.inst(ico(1)).data.numPls;
         end
-case 1
-    switch ico(2)
-        case 3
-            setclock(ico, val);
-        case 7
-            smdata.inst(ico(1)).data.numPls = val;
-    end
+    case 1
+        switch ico(2)
+            case 3     
+                % Check current samprate (slow to set, faster to read). 
+                currSamp=smdata.inst(ico(1)).cntrlfn([ico(1:2),0]); 
+                if currSamp ~= val
+                    setclock(ico, val);
+                end
+            case 7
+                smdata.inst(ico(1)).data.numPls = val;
+        end
     case 3 % software trigger
         daqfn('ForceTrigger', boardHandle);
     case 4 % Arm
         nBuffers = smdata.inst(ico(1)).data.nBuffers;
         if nBuffers>1 %For async readout. Abort ongoing async readout, config,post buffers,
             chan = smdata.inst(ico(1)).data.chan;
-            daqfn('AbortAsyncRead', boardHandle);
+            %daqfn('AbortAsyncRead', boardHandle);
             samplesPerBuffer = smdata.inst(ico(1)).data.samplesPerBuffer;
-            daqfn('BeforeAsyncRead',  boardHandle, chan, 0, samplesPerBuffer, 1, nBuffers, 1024);% uses total # records
+            % 1025: external start capture (1) + triggered streaming (1024)
+            ADMA_TRIGGERED_STREAMING    =   hex2dec('00000400');
+            ADMA_EXTERNAL_STARTCAPTURE  =   hex2dec('00000001');
+            ADMA_INTERLEAVE_SAMPLES     =   hex2dec('00001000');
+            flags = ADMA_TRIGGERED_STREAMING + ADMA_EXTERNAL_STARTCAPTURE; 
+            daqfn('BeforeAsyncRead',  boardHandle, chan, 0, samplesPerBuffer, 1, nBuffers, flags);% uses total # records
             for i=1:min(nBuffers,bufferPost) % Number of buffers to use in acquisiton;
                 daqfn('PostAsyncBuffer', boardHandle, smdata.inst(ico(1)).data.buffers{i}, samplesPerBuffer*2);
             end
-        end
+        else
+            
+        end 
         daqfn('StartCapture', boardHandle); % start readout (awaiting trigger)
     case 5
         %% Configure readout. Find best buffer size, number of buffers, then allocate. Save info in inst.data.
@@ -122,15 +140,16 @@ case 1
         % rate passed by smabufconfi2 is 1/pulselength
         % If pulsed data, also pass the number of pulses so that each buffer contains integer number of pulsegroups, making masking easier.
         smdata.inst(ico(1)).data.data={};
-        if ~exist('val','var'),   return;     end        
+        if ~exist('val','var'), return; end        
         if ~isempty(varargin), config = struct(varargin{:}); end
         %% Set samprate, configure for multiple channels. 
         numDAQchans=2; chanInds = [1,2];
+        daqfn('AbortAsyncRead', boardHandle);                    
         if  ~isempty(varargin) && isfield(config,'chans')
             % Grabbing data from multiple channels
             smdata.inst(ico(1)).data.chan = sum(chanInds(config.chans));
             nchans = length(config.chans);            
-            val = val * nchans; 
+            %val = val * nchans; 
             chanList = [1,2]; 
         else
             % Grabbing data from only one channel, use typical SM method. 
@@ -138,9 +157,10 @@ case 1
             nchans = 1;
             chanList = ico(2); 
         end
+        smdata.inst(ico(1)).data.chanList = chanList; 
         
         % Check that instrument can be set to samprate in inst.data
-        currRate = cell2mat(smget('samprate'));
+        currRate = smdata.inst(ico(1)).data.samprate; 
         if currRate ~= smdata.inst(ico(1)).data.samprate
             clockrate = setclock(ico,smdata.inst(ico(1)).data.samprate);
             if clockrate~=smdata.inst(ico(1)).data.samprate % ummmm
@@ -153,7 +173,7 @@ case 1
         % points input / time, divided by 'rate,' number of data points output / time
         % Fix me: Do we really do this samprate == 0 thing? 
         if samprate > 0
-            downsamp = floor(samprate/rate);
+            downsamp = floor(samprate/rate+1e-12);
             if ~isempty(varargin) && isfield(config,'pls')
                 % Multiply points / pulse by # of pulses so that pulsegroup fits in buffer.
                 minPointsPerBuffer = downsamp*config.pls; 
@@ -183,15 +203,23 @@ case 1
         
         if totPoints < maxBufferSize % Only need a single buffer
             samplesPerBuffer = ceil(totPoints/sampInc)*sampInc;
+            useRead = 1; nBuffers = 1; 
         else
+            useRead = 0;
             % Buffer wants to be be multiple of both sampInc and downsampBuff, so find lcm.
             minPointsPerBuffer2 = lcm(sampInc,minPointsPerBuffer);
             % If buffFactor > maxBufferSize, this is 0. Otherwise, gives number
             % of repeats we can fit in buffer.
             nRepeats = floor(maxBufferSize / minPointsPerBuffer2);
-            samplesPerBuffer = nRepeats*minPointsPerBuffer2;
+            %if ~isempty(varargin) && isfield(config,'pls')
+                %nLoop = totPoints/minPointsPerBuffer2; 
+                %nBuffers = ceil(npoints/config.pls/nRepeats);
+                %samplesPerBuffer = npoints*downsamp/nBuffers;
+            %else
+                samplesPerBuffer = nRepeats*minPointsPerBuffer2;
+            %end
         end
-           
+                   
         % Case where buffers are too big due to sampInc. For non pulse
         % cases, change the ramprate to be multiple of sampInc. 
         if samplesPerBuffer == 0
@@ -206,14 +234,13 @@ case 1
             rate=samprate/minPointsPerBuffer2;
             totPoints = downsamp * npoints;
         end
-        
-        nBuffers = ceil(totPoints / samplesPerBuffer);
+        if ~useRead, nBuffers = nchans*ceil(totPoints / samplesPerBuffer); end
         %samplesPerBuffer = ceil(totPoints/nBuffers/sampInc)*sampInc;
         nPointsPerBuffer = round(samplesPerBuffer/downsamp);
         %% Allocate buffers
         minSamps=128; % Depends on model, check manual
         if nBuffers > 1 % Configure Async read: abort current readout, free buffers, allocate new buffers.
-            daqfn('AbortAsyncRead', boardHandle);
+            %daqfn('AbortAsyncRead', boardHandle);
             if totPoints < minSamps
                 error('Record size must be larger than 128');
             end
@@ -249,7 +276,7 @@ case 1
             smdata.inst(ico(1)).data.nPointsPerBuffer = round(samplesPerBuffer/config.mean);
             smdata.inst(ico(1)).data.waitData = 1;
         else
-            smdata.inst(ico(1)).datadim(chanList) = npoints/nchans;
+            smdata.inst(ico(1)).datadim(chanList) = npoints;
             smdata.inst(ico(1)).data.nPointsPerBuffer = nPointsPerBuffer;
             smdata.inst(ico(1)).data.waitData = 0;
         end
@@ -294,12 +321,13 @@ elseif smdata.inst(ico(1)).data.extclk == 2 %internal clock
 end
 end
 
-function newDataAve = procData(pbuffer,samplesPerBuffer,nchans,instData)
+function newDataAve = procData(pbuffer,samplesPerBuffer,chanList,instData)
 % Take buffer of incoming data and average, rescale. 
 nbits = 16;
 numPls = instData.numPls;
 chanRng = instData.rng(1); %FIXME
 downsamp = instData.downsamp; 
+nchans = length(chanList); 
 nPointsPerBuffer = instData.nPointsPerBuffer; 
 
 % Configure data processing, default is mean.
@@ -311,13 +339,13 @@ end
 
 % Create mask
 if isfield(instData, 'mask') && ~isempty(instData.mask) % Set mask
-    if nchans > 1 % if mask has 2 rows, use 2nd for 2nd channel.
+    %if nchans > 1 % if mask has 2 rows, use 2nd for 2nd channel.
         s(1).subs = {instData.mask(1,:), ':'}; s(1).type = '()';
         s(2).subs = {instData.mask(2,:), ':'}; s(2).type = '()';
-    else
-        s.subs = {instData.mask(1,:), ':'};
-        s.type = '()';
-    end
+    %else
+        %s.subs = {instData.mask(1,:), ':'};
+        %s.type = '()';
+    %end
 else
     s.subs = {[], ':'}; % without a mask, grab all the data.
 end
@@ -332,24 +360,26 @@ else
     data = pbuffer.value;
 end
 if ~instData.waitData
-    for i = 1:nchans
-        if ~isempty(s(i).subs{1})
+    n = 1; 
+    for i = chanList
+        if length(s)>=i && ~isempty(s(i).subs{1})
             if length(s(i).subs{1})==downsamp % Apply mask (s), reshape data into downsamp x npoints matrix, average across rows.
-                newDataAve{i} = combine(subsref(reshape(data(:,i), downsamp, nPointsPerBuffer), s(i)), 1)'; %#ok<*AGROW>
+                newDataAve{n} = combine(subsref(reshape(data(:,n), downsamp, nPointsPerBuffer), s(i)))'; %#ok<*AGROW>
             else % Varying pulse lengths.
                 
                 % Take useful data, reshape into full pulse lines, apply mask.
                 % Assumes readout time constant across pulses.
-                newData{i}=subsref(reshape(data(:,i),length(s(i).subs{1}),size(data,1)/length(s(i).subs{1})),s(i));
+                newData{n}=subsref(reshape(data(:,n),length(s(i).subs{1}),size(data,1)/length(s(i).subs{1})),s(i));
                 % newData has size npls*nPointsPerReadout x nRepeats
                 % Now all pulses have same length data, so separate and average.
-                newDataAve{i} = reshape(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls/nchans)),1,nPointsPerBuffer/nchans)';
+                newDataAve{n} = reshape(combine(reshape(newData{n},size(newData{n},1)/numPls,numPls,nPointsPerBuffer/numPls/nchans)),1,nPointsPerBuffer/nchans)';
                 %newDataAve{i} = squeeze(combine(reshape(newData{i},size(newData{i},1)/numPls,numPls,nPointsPerBuffer/numPls/nchans)));
             end
         else
-            newDataAve{i} = combine(reshape(data(:,i),downsamp,nPointsPerBuffer));
+            newDataAve{n} = combine(reshape(data(:,n),downsamp,nPointsPerBuffer));
         end
-        newDataAve{i} = chanRng * (newDataAve{i}/2^(nbits-1)-1);
+        newDataAve{n} = chanRng * (newDataAve{n}/2^(nbits-1)-1);
+        n = n+1; 
     end
 else
     newDataAve{1} = data;
