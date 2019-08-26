@@ -21,7 +21,7 @@ if any(strcmp(type,visaObj)) % For visa, check which drivers installed.
     if ~exist('drvr','var') || isempty(drvr)
         installedDrivers = instrhwinfo('visa');
         if ~isempty(installedDrivers)
-            drvr = installedDrivers.InstalledAdaptors{1};
+            drvr = installedDrivers.InstalledAdaptors{2};
         else
             error('No VISA drivers installed');
         end
@@ -48,9 +48,10 @@ switch type
     case 'usb' % this probably doesn't quite work. 
         inst = visa(drvr,sprintf('USB0::%s::INSTR',number));        
 end
+if ~exist('smnumber','var'), smnumber = length(smdata.inst)+1; end
 if ~isempty(smnumber)
-smnumber =sminstlookup(smnumber); 
-smdata.inst(smnumber).data.inst=inst; 
+    smnumber =sminstlookup(smnumber);
+    smdata.inst(smnumber).data.inst=inst;
 end
     
 end
