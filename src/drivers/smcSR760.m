@@ -31,11 +31,15 @@ switch ico(2) %
                 %04/30/2026 LSD: pause time is unnecessary since 'STRT'
                 %will reset the SR760 anyway. didn't measure any changes
                 %with and without it.
-%                 pause(smdata.inst(ico(1)).data.pause);
-                
-%                 if smdata.inst(ico(1)).data.pause<10 %
-%                     warning('Pause probably too short.')
-%                 end
+                % 11/17/2026 JRM: I am finding this is necessary after all.
+                % The first aquisition takes half as long as the aquisition
+                % time and I found changing the signal just before
+                % aquisition led to bad results
+                pause(smdata.inst(ico(1)).data.pause);
+
+                if smdata.inst(ico(1)).data.pause<10 %
+                    warning('Pause probably too short.')
+                end
                 
                 fprintf(inst,'STRT'); %start measurement
                 while 1
