@@ -156,9 +156,31 @@ switch ico(3)
                         %I think it's interleaving point by point
                         data=buf.value(ico(2):2:bufLen-2+ico(2));
                         
-                        %Uncomment for debugging.
-                        %mask=s.subs{1};
-                        %figure(555); clf; hold on; plot(data(1:1e4)); plot(mask(1:1e4).*3e4);
+                        % Plot whole records so the one-record mask stays aligned
+                        % with the deinterleaved data from this channel.
+                        if debug
+                            mask = s.subs{1};
+                            nPlotRecords = min(floor(numel(data)/downsamp), ...
+                                floor(1e4/downsamp));
+                            if isvector(mask) && numel(mask) == downsamp && ...
+                                    nPlotRecords > 0
+                                nPlotSamples = nPlotRecords*downsamp;
+                                plotMask = repmat(double(mask(:)), ...
+                                    nPlotRecords, 1);
+                                figure(555); clf;
+                                plot(double(data(1:nPlotSamples))); hold on;
+                                plot(3e4*plotMask); hold off;
+                                xlabel('Samples in consecutive NPT records');
+                                ylabel('ADC code / scaled mask');
+                                title(sprintf('Channel %d, buffer %d, %d records', ...
+                                    ico(2), i+1, nPlotRecords));
+                            else
+                                warning('smcATS9440_NPT:DebugMaskShape', ...
+                                    ['Debug overlay requires one %d-sample ' ...
+                                     'mask per record; found %d samples.'], ...
+                                    downsamp, numel(mask));
+                            end
+                        end
                         
                         
                         if ~isempty(s.subs{1})
