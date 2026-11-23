@@ -1,5 +1,18 @@
 function [] = smcZIMFIAInit(device_id,inst)
-% smcZIMFIAInit initializes the ZI MFIA
+%SMCZIMFIAINIT  Initialise the Zurich Instruments MFIA and store its session.
+%   SMCZIMFIAINIT(DEVICE_ID, INST) opens a LabOne API session (ziDAQ) to the
+%   MFIA named DEVICE_ID and stores the returned device handle in
+%   smdata.inst(INST).data.inst for use by smcZIMFIA.
+%
+%   It first checks that the ziDAQ MEX file and utility functions are on the
+%   MATLAB path (printing guidance and returning early if not), then creates
+%   the API session at API level 6 and verifies the Data Server version.
+%
+%   Inputs:
+%     DEVICE_ID - MFIA device id string (e.g. 'dev1234').
+%     INST      - instrument index into smdata.inst to populate.
+%
+%   See also SMCZIMFIA, ZICREATEAPISESSION.
 
 global smdata;
 

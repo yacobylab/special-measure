@@ -1,5 +1,50 @@
 function [val, rate] = smcZIMFIA(ico, val, rate)
-% [val, rate] = smcSR715(ic, val, rate)
+%SMCZIMFIA  Special Measure (smdata) control function for the Zurich Instruments MFIA.
+%   [VAL, RATE] = SMCZIMFIA(ICO, VAL, RATE) reads from or writes to a Zurich
+%   Instruments MFIA impedance analyzer through the LabOne MATLAB API (ziDAQ).
+%   It is registered as smdata.inst(i).cntrlfn and is invoked by
+%   smget/smset/smrun; it is not normally called directly.
+%
+%   Inputs:
+%     ICO  - 1x3 index [instrument channel operation].
+%     VAL  - value to write on a set; for the channel 7 configure op it is the
+%            sweep point count.
+%     RATE - ramp rate; used by the channel 7 configure op to derive the
+%            averaging time (data.tr = 1/rate).
+%
+%   Outputs:
+%     VAL  - value read on a get; unchanged on a set.
+%     RATE - unchanged.
+%
+%   The ziDAQ device id is at smdata.inst(ICO(1)).data.inst; the impedance
+%   analyzer index (imp_c) is '0'.
+%
+%   Channels:
+%     1  param0     get      first impedance parameter  (mean of polled sample)
+%     2  param1     get      second impedance parameter (mean of polled sample)
+%     3  frequency  get/set  test frequency             [Hz]
+%     4  amplitude  get/set  drive amplitude            [V]
+%     5  bias       get/set  DC bias voltage            [V]
+%     6  maxbw      get/set  maximum bandwidth          [Hz]
+%     7  biassweep  buffered DC-bias sweep (sweeper module); get returns
+%                   [param0 param1]
+%
+%   Operations:
+%     0 get, 1 set, 3 trigger, 4 arm, 5 configure.
+%
+%   Channels 1 and 2 share one poll: a get returns the cached value if it is
+%   newer than 0.1 s, otherwise it polls the impedance sample, averages param0
+%   and param1, and caches both (smdata.inst(i).data.p0/.p1/.time) so the
+%   device is polled only once per point.
+%
+%   Channel 7 drives the LabOne sweeper over the DC bias: configure (5) sets
+%   the bandwidth/averaging/point count from RATE and VAL, arm (4) builds and
+%   subscribes the sweeper, trigger (3) executes it, and get (0) waits for it
+%   to finish and returns the [param0 param1] buffer.
+%
+%   See also SMGET, SMSET, SMRUN.
+
+
 %Channels
 % 1: param 0 
 % 2: param 1
@@ -192,7 +237,7 @@ switch ico(2) % Channel
                 freq=ziDAQ('getDouble', ['/' device '/imps/' imp_c '/freq']);
                 %bw = max(freq/100, 0.1);
                 %bw = min(100, bw);
-                bw=100;
+                bw=5;
                 
                 % Set the maximum bandwidth of imps to updated bw and omega
                 % suppression

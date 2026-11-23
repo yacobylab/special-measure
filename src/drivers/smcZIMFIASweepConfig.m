@@ -1,8 +1,27 @@
 function scan = smcZIMFIASweepConfig(scan)
-%smcZIMFAISweepConfig Summary of this function goes here
-%   Detailed explanation goes here
+%SMCZIMFIASWEEPCONFIG  Configure a scan struct for an MFIA buffered bias sweep.
+%   SCAN = SMCZIMFIASWEEPCONFIG(SCAN) prepares a 2-loop smdata SCAN so the
+%   inner loop runs as a hardware DC-bias sweep on the MFIA sweeper module
+%   (see smcZIMFIA channel 7), and the returned [param0 param1] buffer is split
+%   back into two channels.
+%
+%   It modifies SCAN (and smdata, for the sweep instrument found from
+%   scan.loops(2).getchan) as follows:
+%     - stores the sweep endpoints and point count in
+%       smdata.inst(i).data.bstart/.bstop/.npts, plus .nsample and .omegas;
+%     - clears scan.loops(1).trafofn;
+%     - sets scan.loops(2).procfn so the concatenated [param0 param1] vector is
+%       sliced (via subsref) into its first and second halves as two channels
+%       of length npoints;
+%     - duplicates scan.disp(1)/(2) into disp(3)/(4) on channel 2.
+%
+%   Input/Output:  SCAN - smdata scan struct, modified and returned.
+%
+%   See also SMCZIMFIA, SMCHANINST, SMRUN.
+
 %todo: write a function to update smdata with bstart and bstop, referencing
 %the scan. Save the function in Nichol Group/matlab/special meaure/channels
+
 
 global smdata;
 
