@@ -237,7 +237,7 @@ switch ico(2) % Channel
                 freq=ziDAQ('getDouble', ['/' device '/imps/' imp_c '/freq']);
                 %bw = max(freq/100, 0.1);
                 %bw = min(100, bw);
-                bw=5;
+                bw=ziDAQ('getDouble', ['/' device '/imps/' imp_c '/maxbandwidth']);
                 
                 % Set the maximum bandwidth of imps to updated bw and omega
                 % suppression
